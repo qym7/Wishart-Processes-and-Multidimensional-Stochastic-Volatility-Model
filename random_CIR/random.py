@@ -3,6 +3,7 @@ Defining Generalized Gaussian distribution, and non-central chi-square distribut
 19 Oct. 2020.
 Benxin ZHONG
 '''
+import numpy as np
 
 def general_normal(q, size=1):
     '''
@@ -43,15 +44,34 @@ def general_normal(q, size=1):
     return X
     
     
-def chi_2(p, q, lam=0.0, size=1):
+def chi_2(p, q, lam=0.0, size=None):
     '''
     Function used to generate the samples of Chi-square distribution, with specified params nu and lambda,
     and the given size.
     * Params:
         p, q : Indicating the degree of freedom by nu = p/q. Positive integers.
-        lam: Default is 0. The center. Non-negative real number.
-        size : Default is 1. Size of the generated sample. Shall be an integer, or an 1d array/tuple of integers.
+        lam: Default is 0. The center. Non-negative real number, 
+             or an array of non-negative real numbers.
+        size : Default is None. Size of the generated sample. Shall be an integer, 
+               or an 1d array/tuple of integers. 
+               If size is None, it is determined as the same shape of lam.
+               If lam is an array, size MUST be the shape of lam.
     '''
+    # Check lam.
+    lam = np.array(lam)
+    if lam.size > 1: # lam is an array.
+        if size is None:
+            size = np.array(lam.shape)
+        else:
+            size = np.array(size)
+            assert (size==lam.shape).all()
+        assert (lam>=0).all()
+        lam = lam.reshape(-1)
+    else: # lam is an integer.
+        assert lam>=0
+        if size is None:
+            size = 1
+    # Calculate the number of sample to generate.   
     size = np.array(size, dtype=int)
     if size.size == 1: #i.e., the required size is an integer.
         num = size
@@ -61,6 +81,7 @@ def chi_2(p, q, lam=0.0, size=1):
         for x in size:
             num = num*x
     assert (num>0)
+    assert lam.size==num
     
     # Examin p and q.
     assert isinstance(p, int) and isinstance(q, int)
@@ -72,12 +93,8 @@ def chi_2(p, q, lam=0.0, size=1):
     # Generate the generalized Gaussian variables.
     lst_Z = general_normal(q=2*q, size=(num, p))
     # Calculate the number of standard Gaussian required.
-    assert lam>=0
-    if lam == 0:
-        lst_N = np.zeros(num, dtype=int)
-    else:
-        lst_N = np.random.poisson(lam=lam/2, size=num)
-        lst_N = lst_N.astype(int)
+    lst_N = np.random.poisson(lam=lam/2, size=num)
+    lst_N = lst_N.astype(int)
     # Generate Chi-square variables.
     lst_X = []
     for i in range(num):
