@@ -77,11 +77,13 @@ def chi_2(p, q, lam=0.0, size=None):
         num = size
     else:
         assert len(size.shape) == 1 
-        num =1
+        num = 1
         for x in size:
             num = num*x
+    num = int(num)
     assert (num>0)
-    assert lam.size==num
+    if lam.size>1:
+        assert lam.size==num
     
     # Examin p and q.
     assert isinstance(p, int) and isinstance(q, int)
@@ -100,7 +102,7 @@ def chi_2(p, q, lam=0.0, size=None):
     for i in range(num):
         Z = lst_Z[i]
         N = lst_N[i]
-        Y = np.random.normal(size=N)
+        Y = np.random.normal(size=2*N)
         X = np.sum(np.power(Z, 2*q)) + np.sum(Y*Y)
         lst_X.append(X)
     # reshape
