@@ -1,6 +1,11 @@
+'''
+Defined the class CIR which generates discretised CIR process.
+20 Oct. 2020.
+Benxin ZHONG
+'''
 import numpy as np
 from fractions import Fraction
-import random_CIR
+import sampling
 
 class CIR:
     '''
@@ -61,7 +66,7 @@ class CIR:
             Vt = V[:, i-1]
             lam_t = Vt * nita
             # Generate the chi-square distribution.
-            Vt1 = random_CIR.chi_2(self.p, self.q, lam=lam_t)
+            Vt1 = sampling.chi_2(self.p, self.q, lam=lam_t)
             Vt1 = Vt1 * factor # Calculate V_t_{i+1}.
             V[:, i] = Vt1
         
