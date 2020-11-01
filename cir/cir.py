@@ -12,16 +12,25 @@ class CIR:
     The Class of CIR process generator.
     '''
     max_q = 100
-    def __init__(self, kappa, theta, epsilon, x0, exact=False, **kwargs):
-        assert kappa > 0
-        assert theta > 0
-        assert epsilon > 0
-        self.kappa = kappa
-        self.theta = theta
-        self.epsilon = epsilon
+    def __init__(self, k, a, sigma, x0, exact=False, **kwargs):
+        '''
+        d Vt = (a - kVt)dt + sigma sqrt(Vt) d Wt
+        * Params:
+            k : Non-neg number.
+            a : Pos number.
+            sigma: Pos number.
+            x0 : Initial value.
+        '''
+        assert k >= 0
+        assert a > 0
+        assert sigma > 0
+        self.k = k
+        self.a = a
+        self.sigma = sigma
+        self.sigmasqr = sigma*sigma
         self.x0 = x0
         
-        self.nu = 4*kappa*theta / (epsilon*epsilon)
+        self.nu = 4*a / self.sigmasqr
         if 'max_q' in kwargs:
             max_q = kwargs['max_q']
             assert isinstance(max_q, int) and max_q>0
@@ -34,9 +43,15 @@ class CIR:
         self.q = frc.denominator
     
     def nita(self, h):
-        tmp = np.exp(-1*self.kappa * h)
-        nomerator = 4 * self.kappa * tmp
-        denominator = self.epsilon*self.epsilon * (1-tmp)
+        '''
+        Function nita, nita(h) = 4k exp(-kh) / (sigma^2(1-exp(-kh))).
+        '''
+        if self.k == 0:
+            return 4/(self.sigmasqr*h)
+        
+        tmp = np.exp(-1*self.k * h)
+        nomerator = 4 * self.k * tmp
+        denominator = self.sigmasqr * (1-tmp)
         return nomerator/denominator
     
     def __call__(self, T, n, num=1, x0=None):
@@ -57,7 +72,7 @@ class CIR:
         h = T/n
         
         nita = self.nita(h)
-        factor = np.exp(-1*self.kappa*h) / nita
+        factor = np.exp(-1*self.k*h) / nita
         
         # Generate Vt.
         V = np.zeros((num, n+1))
@@ -66,7 +81,9 @@ class CIR:
             Vt = V[:, i-1]
             lam_t = Vt * nita
             # Generate the chi-square distribution.
-            Vt1 = sampling.chi_2(self.p, self.q, lam=lam_t)
+#             Vt1 = sampling.chi_2(self.p, self.q, lam=lam_t)
+            Vt1 = np.random.noncentral_chisquare(df = self.nu, nonc=lam_t)
+            
             Vt1 = Vt1 * factor # Calculate V_t_{i+1}.
             V[:, i] = Vt1
         
