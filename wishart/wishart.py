@@ -21,7 +21,9 @@ class Wishart():
         assert alpha >= self.d - 1
         self.alpha = alpha
         self.b = b
-        self.a = a or np.eye(self.d)
+        self.a = a
+        if a is None:
+            self.a = np.eye(self.d)
         self.c, self.k, self.p, self.r = linalg.decompose_cholesky(self.x[1:, 1:])
 
     def hr(self, u):
@@ -51,7 +53,7 @@ class Wishart():
         pi[1:, 1:] = self.p
         xp = pi.dot(x).dot(pi.T)
         u = np.zeros(self.r+1)
-        u[1:] = np.linalg.inv(self.c).dot(xp[1])
+        u[1:] = np.linalg.inv(self.c).dot(xp[0, 1:self.r+1])
         u[0] = xp[0,0] - (u[1:]*u[1:]).sum()
         G = np.random.randn(self.r)
 
@@ -79,7 +81,8 @@ class Wishart():
     def __call__(self, x, t, b, a, num=1):
         assert b.shape == (self.d, self.d) and a.shape == (self.d, self.d)
 
-        q = quad(lambda s: np.exp(s*b).dot(a.T).dot(a).dot(np.exp(s*b.T)), 0, t)
+        q = np.array([[quad(lambda s: np.exp(s*b).dot(a.T).dot(a).dot(np.exp(s*b.T))[i,j], 0, t)[0]
+                       for i in range(self.d)] for j in range(self.d)])
         c, k, p, n = linalg.decompose_cholesky(q/t)
         theta = np.eye(self.d)
         theta[:n, :n] = c

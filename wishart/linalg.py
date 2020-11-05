@@ -30,13 +30,7 @@ def decompose_cholesky(M):
                 A[j:n, j] = A[j:n, j] - A[j:n, i]*A[j, i]
 
     A = np.tril(A, k=1)
-    c = np.zeros((r, r))
-    k = np.zeros((n-r, r))
-    for i in range(0, r):
-        for j in range(0,i+1):
-            c[i, j] = A[i,j]
-    for i in range(0, r):
-        for j in range(r, n):
-            k[j-r, i] = A[j, i]
+    c = A[:r, :r]
+    k = A[r:, :r]
 
     return c, k, p, r
