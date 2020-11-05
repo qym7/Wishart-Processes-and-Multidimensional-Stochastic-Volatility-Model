@@ -4,8 +4,8 @@ def decompose_cholesky(M):
     '''
     :param M: a symmetric positive semi-definite matrix
     :return:
-        * A: lower triangular part of cholesky decomposition
-        * c: lower triangular part of cholevsky decomposition
+        * A: lower triangular part of Cholesky decomposition
+        * c: lower triangular part of Cholevsky decomposition
         * k: M(n-r, r)
         * p: permutation matrix
         * r: range of matrix M
@@ -35,16 +35,36 @@ def decompose_cholesky(M):
 
     return c, k, p, r
 
+def diag(M):
+    '''
+    :param M: a symmetric matrix
+    :return:
+        * D: the corresponding diagonal matrix of M
+        * V: the matrix composed by all eigenvalues of M
+    '''
+    D, V = np.linalg.eig(M)
+    D = np.diag(D)
+
+    return D, V
+
+def exp(M):
+    '''
+    :param M: a symmetric matrix
+    :return: exp(M)
+    '''
+    d, v = diag(M)
+    return v.dot(np.exp(d)).dot(v.T)
+
 
 def brownian(N, M, T):
     '''
     Function used to generate Brownian motion path.
     * Params:
-        N : The number of pices.
-        M : The number of pathes to generate.
+        N : The number of pieces.
+        M : The number of paths to generate.
         T : Ending time.
     * Return:
-        W : The brownian motion pathes. Of shape (M, N+1).
+        W : The brownian motion paths. Of shape (M, N+1).
     '''
     dT = T/N
     
@@ -52,7 +72,7 @@ def brownian(N, M, T):
     Z = np.random.normal(size=(M, N))
     # Add a column of zeros to Z.
     Z = np.concatenate([np.zeros((M,1)), Z], axis=1)
-    # Calculate W, the matrix of M discretized Browian motions. Each row is a Browian motion.
+    # Calculate W, the matrix of M discrete Brownian motions. Each row is a Brownian motion.
     W = np.cumsum(np.sqrt(dT)*Z, axis=1)
     
     return W
