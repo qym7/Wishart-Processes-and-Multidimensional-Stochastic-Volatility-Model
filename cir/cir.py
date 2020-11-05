@@ -29,7 +29,11 @@ class CIR:
         self.sigma = sigma
         self.sigmasqr = sigma*sigma
         self.x0 = x0
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> f966e8e83473374876a4a07c4e139a49415faeeb
         self.nu = 4*a / self.sigmasqr
         if 'max_q' in kwargs:
             max_q = kwargs['max_q']
@@ -41,19 +45,23 @@ class CIR:
             frc = frc.limit_denominator(max_q)
         self.p = frc.numerator
         self.q = frc.denominator
-    
+
     def nita(self, h):
         '''
         Function nita, nita(h) = 4k exp(-kh) / (sigma^2(1-exp(-kh))).
         '''
         if self.k == 0:
             return 4/(self.sigmasqr*h)
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> f966e8e83473374876a4a07c4e139a49415faeeb
         tmp = np.exp(-1*self.k * h)
         nomerator = 4 * self.k * tmp
         denominator = self.sigmasqr * (1-tmp)
         return nomerator/denominator
-    
+
     def __call__(self, T, n, num=1, x0=None):
         '''
         Function used to generate the discretized CIR process.
@@ -70,10 +78,14 @@ class CIR:
         num = int(num)
         assert T>=0 and n>0 and num>0
         h = T/n
-        
+
         nita = self.nita(h)
         factor = np.exp(-1*self.k*h) / nita
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> f966e8e83473374876a4a07c4e139a49415faeeb
         # Generate Vt.
         V = np.zeros((num, n+1))
         V[:, 0] = x0
@@ -83,7 +95,11 @@ class CIR:
             # Generate the chi-square distribution.
 #             Vt1 = sampling.chi_2(self.p, self.q, lam=lam_t)
             Vt1 = np.random.noncentral_chisquare(df = self.nu, nonc=lam_t)
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> f966e8e83473374876a4a07c4e139a49415faeeb
             Vt1 = Vt1 * factor # Calculate V_t_{i+1}.
             V[:, i] = Vt1
         
