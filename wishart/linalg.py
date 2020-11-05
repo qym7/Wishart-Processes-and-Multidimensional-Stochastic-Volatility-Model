@@ -34,3 +34,25 @@ def decompose_cholesky(M):
     k = A[r:, :r]
 
     return c, k, p, r
+
+
+def brownian(N, M, T):
+    '''
+    Function used to generate Brownian motion path.
+    * Params:
+        N : The number of pices.
+        M : The number of pathes to generate.
+        T : Ending time.
+    * Return:
+        W : The brownian motion pathes. Of shape (M, N+1).
+    '''
+    dT = T/N
+    
+    # Define Z, a matrix of shape M*N.
+    Z = np.random.normal(size=(M, N))
+    # Add a column of zeros to Z.
+    Z = np.concatenate([np.zeros((M,1)), Z], axis=1)
+    # Calculate W, the matrix of M discretized Browian motions. Each row is a Browian motion.
+    W = np.cumsum(np.sqrt(dT)*Z, axis=1)
+    
+    return W
