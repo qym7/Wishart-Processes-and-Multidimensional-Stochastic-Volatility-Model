@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.linalg
 from scipy.integrate import quad
 
 from wishart import utils
@@ -61,12 +62,13 @@ class Wishart():
 
         return np.array(lst_hru)
 
-    def wishart_e(self, T, N, x=None):
+    def wishart_e(self, T, N, num=1, x=None, W=None):
         '''
         :param T: Non-negative real number.
         :param N: Positive integer. The number of discrete time points.
         :param x: Pos-def matrix. The initial value. If x is None, self.x is used.
-        :return: an np.array of shape (N+1, self.d, self.d).
+        :Param W: np.array of shape (r, N+1).
+        :return: an np.array of shape (num, N+1, self.d, self.d).
         '''
         assert T >= 0 and N > 0
         # Check x.
@@ -91,37 +93,50 @@ class Wishart():
         u = np.zeros(r+1)
         u[1:] = np.linalg.inv(c).dot(xp[0, 1:r+1])
         u[0] = xp[0, 0] - (u[1:]*u[1:]).sum()
-        W = utils.brownian(N=N, M=r, T=T)  # Of shape (N+1, r).
-        cir_u0 = CIR(k=0, a=self.alpha-r, sigma=2, x0=u[0])  # The CIR generator.
-        u0 = cir_u0(T=T, n=N, num=1)[0]  # Of shape (N+1,)
-        proc_U = np.zeros((N+1, r+1))
-        proc_U[:, 0] = u0
-        proc_U[:, 1:] = (u[1:] + W).reshape(-1, 1)
-        proc_X = self.hr(u=proc_U, r=r, c=c, k=k)  # Of shape (N+1, d, d)
-        proc_X = [pi.T.dot(Xt).dot(pi) for Xt in proc_X]
+        lst_proc_X = []
+        
+        for _ in range(num):
+            W = utils.brownian(N=N, M=r, T=T)  # Of shape (N+1, r).
+            cir_u0 = CIR(k=0, a=self.alpha-r, sigma=2, x0=u[0])  # The CIR generator.
+            u0 = cir_u0(T=T, n=N, num=1)[0]  # Of shape (N+1,)
+            proc_U = np.zeros((N+1, r+1))
+            proc_U[:, 0] = u0
+            proc_U[:, 1:] = (u[1:] + W).reshape(-1, 1)
+            proc_X = self.hr(u=proc_U, r=r, c=c, k=k)  # Of shape (N+1, d, d)
+            proc_X = [pi.T.dot(Xt).dot(pi) for Xt in proc_X]
+            lst_proc_X.append(np.array(proc_X))
 
-        return np.array(proc_X)
+        return np.array(lst_proc_X)
 
-    def wishart_i(self, T, N, x):
+    def wishart_i(self, T, n, N=100, num=1, x=None):
         '''
         :param T: Non-negative real number.
-        :param N: Positive integer. The number of discrete time points.
+        :param n: Positive integer. The n of I_d^n.
+        :param num: Positive integer. The number of discrete time points.
         :param x: Pos-def matrix. The initial value. If x is None, self.x is used.
-        :return: an np.array of shape (N+1, self.d, self.d).
+        :return: an np.array of shape (num, self.d, self.d).
         '''
+        if x is None:
+            x = self.x
         y = x.copy()
         I = np.eye(self.d)
-        n = utils.decompose_cholesky(x)[3]
         I[n:, n:] = np.zeros((self.d-n, self.d-n))
+        
+#         lst_xT = []
         for k in range(n):
             p = np.eye(self.d)
             p[0, 0] = p[k, k] = 0
             p[k, 0] = p[0, k] = 1
             if k == 0:
-                Y = self.wishart_e(T, N, p.dot(y).dot(p))
+#                 Y = self.wishart_e(T, N, p.dot(y).dot(p))
+                Y = self.wishart_e(T, N=N, num=num, x=y)[:, -1]
+                y = Y
             else:
-                Y = np.array([self.wishart_e(T, N, p.dot(y[i]).dot(p))[-1] for i in range(N+1)])
-            y = np.array([p.dot(Y[i]).dot(p.T) for i in range(N+1)])  # Of shape (N+1, d, d)
+#                 Y = np.array([self.wishart_e(T, N, p.dot(y[i]).dot(p))[-1] for i in range(N+1)])
+                y = np.array([p.dot(y[i]).dot(p) for i in range(num)])
+                Y = np.array([self.wishart_e(T, N=N, x=y[i])[0, -1] for i in range(num)])
+                y = np.array([p.dot(Y[i]).dot(p) for i in range(num)])
+#             y = np.array([p.dot(Y[i]).dot(p.T) for i in range(N+1)])  # Of shape (N+1, d, d)
 
         return y
 
@@ -132,7 +147,10 @@ class Wishart():
 
         return exp.dot(a.T).dot(a).dot(exp_T)
 
-    def __call__(self, T, N, x, b, a, num=1):
+    def __call__(self, T, b, a, N=100, num=1, x=None):
+        return self.wishart(T, x, b, a, N, num)
+    
+    def wishart(self, T, b, a, N=100, num=1, x=None):
         '''
         :param T: Non-negative real number.
         :param N: Positive integer. The number of discrete time points.
@@ -140,29 +158,58 @@ class Wishart():
         :param b: Matrix of shape (self.d, self.d)
         :param a: Matrix of shape (self.d, self.d)
         :param num: num of simulations
-        :return: an np.array of shape (number, N+1, self.d, self.d).
+        :return: an np.array of shape (num, self.d, self.d).
         '''
+        
+        if x is None:
+            x = self.x
+            
         assert b.shape == (self.d, self.d) and a.shape == (self.d, self.d)
-        delta_t = T/N
-        q = np.array([[[quad(lambda s: self.to_integrate(a, b, s)[i,j], delta_t*n, delta_t*(n+1))[0]
-                       for i in range(self.d)] for j in range(self.d)] for n in range(N)])  # q of size(N, d, d)
-        q = np.cumsum(q, 0)
-        Y_list = []
-        for k in range(num):
-            theta = np.array([np.eye(self.d) for i in range(N)])
-            m = np.zeros((N, self.d, self.d))
-            Y = np.zeros((N + 1, self.d, self.d))
-            for i in range(1, N+1):
-                t = i*delta_t
-                c, k, p, n = utils.decompose_cholesky(q[i-1] / (t))
-                theta[i-1, :n, :n] = c
-                theta[i-1, n:, :n] = k
-                theta[i-1] = np.linalg.inv(p).dot(theta[i-1])
-                m[i-1] = utils.exp(t*b)
-                x_tmp = np.linalg.inv(theta[i-1]).dot(m[i-1]).dot(x).dot(m[i-1].T).dot(np.linalg.inv(theta[i-1]).T)
-                Y[i] = self.wishart_i(t, N, x_tmp)[-1]
-                Y[i] = theta[i-1].dot(Y[i]).dot(theta[i-1].T)
-            Y[0] = x
-            Y_list += [Y]
+        dt = T/N
+        
+        # Here we shall find a method to calculate q.
+#         q = np.array([[[quad(lambda s: self.to_integrate(a, b, s)[i,j], delta_t*n, delta_t*(n+1))[0]
+#                        for i in range(self.d)] for j in range(self.d)] for n in range(N)])  # q of size(N, d, d)
+#         q = np.cumsum(q, 0)
+        lst_t = np.arange(N)*dt
+        dqt = np.array([scipy.linalg.expm(t*b).dot(a.T) for t in lst_t])
+        dqt = np.array([dqt[i].dot(dqt[i].T) for i in range(N)])
+        qT = np.sum(dqt, axis=0)*dt
+#         qT = q[-1]
+        
+        # Calculate p, cn, kn, 
+        c, k, p, n = utils.decompose_cholesky(qT/T)
+        # Build theta_t.
+        theta = np.eye(self.d)
+        theta[:n, :n] = c
+        theta[n:, :n] = k
+        theta = np.linalg.inv(p).dot(theta)
+#         m = utils.exp(T*b)
+        m = scipy.linalg.expm(b*T)
+        theta_inv = np.linalg.inv(theta)
+        x_tmp = theta_inv.dot(m).dot(x).dot(m.T).dot(theta_inv.T)
+#         x_tmp = np.linalg.inv(theta[i-1]).dot(m[i-1]).dot(x).dot(m[i-1].T).dot(np.linalg.inv(theta[i-1]).T)
+        Y = self.wishart_i(T=T, n=n, N=N, num=num, x=x_tmp)
+        X = np.array([theta.dot(Y[i]).dot(theta.T) for i in range(num)])
+        
+        return X
+        
+        
+#         for k in range(num):
+#             theta = np.array([np.eye(self.d) for i in range(N)])
+#             m = np.zeros((N, self.d, self.d))
+#             Y = np.zeros((N + 1, self.d, self.d))
+#             for i in range(1, N+1):
+#                 t = i*delta_t
+#                 c, k, p, n = utils.decompose_cholesky(q[i-1] / (t))
+#                 theta[i-1, :n, :n] = c
+#                 theta[i-1, n:, :n] = k
+#                 theta[i-1] = np.linalg.inv(p).dot(theta[i-1])
+#                 m[i-1] = utils.exp(t*b)
+#                 x_tmp = np.linalg.inv(theta[i-1]).dot(m[i-1]).dot(x).dot(m[i-1].T).dot(np.linalg.inv(theta[i-1]).T)
+#                 Y[i] = self.wishart_i(t, N, x_tmp)[-1]
+#                 Y[i] = theta[i-1].dot(Y[i]).dot(theta[i-1].T)
+#             Y[0] = x
+#             Y_list += [Y]
 
-        return np.array(Y_list)
+#         return np.array(Y_list)
