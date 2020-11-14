@@ -108,3 +108,19 @@ def chi_2(p, q, lam=0.0, size=None):
     # reshape
     lst_X = np.array(lst_X).reshape(size)
     return lst_X
+
+
+def bounded_gauss(size=1):
+    '''
+    Function used to generate the required size of indep instances of Y,
+    where P[Y=sqrt(3)] = P[Y=-sqrt(3)] = 1/6, and P[Y=0] = 2/3.
+    '''
+    U = np.random.uniform(size=size)
+    Y = np.zeros_like(U)
+    
+    ind_pos = U < 1/6
+    ind_neg = U > 5/6
+    Y[ind_pos] = np.sqrt(3)
+    Y[ind_neg] = -1 * np.sqrt(3)
+    
+    return Y
