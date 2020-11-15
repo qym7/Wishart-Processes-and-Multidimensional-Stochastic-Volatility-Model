@@ -147,10 +147,10 @@ class Wishart():
 
         return exp.dot(a.T).dot(a).dot(exp_T)
 
-    def __call__(self, T, b, a, N=100, num=1, x=None):
+    def __call__(self, T, b, a, N=1, num=1, x=None):
         return self.wishart(T, x, b, a, N, num)
     
-    def wishart(self, T, b, a, N=100, num=1, x=None):
+    def wishart(self, T, b, a, N=1, num=1, x=None, num_int=200):
         '''
         :param T: Non-negative real number.
         :param N: Positive integer. The number of discrete time points.
@@ -165,7 +165,7 @@ class Wishart():
             x = self.x
             
         assert b.shape == (self.d, self.d) and a.shape == (self.d, self.d)
-        dt = T/N
+        dt = T/num_int
         
         # Here we shall find a method to calculate q.
 #         q = np.array([[[quad(lambda s: self.to_integrate(a, b, s)[i,j], delta_t*n, delta_t*(n+1))[0]
@@ -173,7 +173,7 @@ class Wishart():
 #         q = np.cumsum(q, 0)
         lst_t = np.arange(N)*dt
         dqt = np.array([scipy.linalg.expm(t*b).dot(a.T) for t in lst_t])
-        dqt = np.array([dqt[i].dot(dqt[i].T) for i in range(N)])
+        dqt = np.array([dqt[i].dot(dqt[i].T) for i in range(num_int)])
         qT = np.sum(dqt, axis=0)*dt
 #         qT = q[-1]
         
