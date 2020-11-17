@@ -4,8 +4,6 @@ Defined the class CIR which generates discretised CIR process.
 Benxin ZHONG
 '''
 import numpy as np
-from fractions import Fraction
-import sampling
 
 class CIR:
     '''
@@ -137,9 +135,10 @@ class CIR:
                     # Assign the value to V.
                     V[ind_in, i] = Vt_in
                     
-            return V
-        elif self.order == 3: Order 3.
-            psi_kt = CIR.psi(-1*self.k, t)
+                return V
+
+        elif self.order == 3:
+            psi_kt = CIR.psi(-1*self.k, T)
             Y = sampling.bounded_gauss(size=(num, n))
             epsilon = np.random.randint(2, size=(num, n))*2 - 1
             zeta = np.random.randint(3, size=(num, n))
@@ -225,7 +224,7 @@ class CIR:
             # zeta = 2.
             tmp = self.cur_x(epsilon[ind_2]*t, x[ind_2])
             tmp = self.cir_x0(t, tmp)
-            xt[ind_2] = self.cit_x1(sqrt_t*Y[ind_2], tmp)
+            xt[ind_2] = self.cir_x1(sqrt_t*Y[ind_2], tmp)
         
         return xt
 
