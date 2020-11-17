@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.linalg
-from scipy.integrate import quad
+# from scipy.integrate import quad
 
 from wishart import utils
 from cir import CIR
@@ -141,15 +141,15 @@ class Wishart():
         return y
 
     def to_integrate(self, a, b, s):
+        '''
+        Returns: terme to intergrate when s*b is inversible.
+        '''
         D, V = utils.diag(s*b)
         exp = V.dot(np.exp(D)).dot(V.T)
         exp_T = V.T.dot(np.exp(D.T)).dot(V)
 
         return exp.dot(a.T).dot(a).dot(exp_T)
 
-    def __call__(self, T, b, a, N=1, num=1, x=None):
-        return self.wishart(T, x, b, a, N, num)
-    
     def wishart(self, T, b, a, N=1, num=1, x=None, num_int=200):
         '''
         :param T: Non-negative real number.
@@ -163,19 +163,9 @@ class Wishart():
         
         if x is None:
             x = self.x
-            
-        assert b.shape == (self.d, self.d) and a.shape == (self.d, self.d)
-        dt = T/num_int
-        
+
         # Here we shall find a method to calculate q.
-#         q = np.array([[[quad(lambda s: self.to_integrate(a, b, s)[i,j], delta_t*n, delta_t*(n+1))[0]
-#                        for i in range(self.d)] for j in range(self.d)] for n in range(N)])  # q of size(N, d, d)
-#         q = np.cumsum(q, 0)
-        lst_t = np.arange(N)*dt
-        dqt = np.array([scipy.linalg.expm(t*b).dot(a.T) for t in lst_t])
-        dqt = np.array([dqt[i].dot(dqt[i].T) for i in range(num_int)])
-        qT = np.sum(dqt, axis=0)*dt
-#         qT = q[-1]
+        qT = utils.integrate(T, b, a, self.d, num_int=num_int)
         
         # Calculate p, cn, kn, 
         c, k, p, n = utils.decompose_cholesky(qT/T)
@@ -213,3 +203,7 @@ class Wishart():
 #             Y_list += [Y]
 
 #         return np.array(Y_list)
+
+    def __call__(self, T, b, a, N=1, num=1, x=None):
+        return self.wishart(T, b, a, N=N, x=x, num=num)
+

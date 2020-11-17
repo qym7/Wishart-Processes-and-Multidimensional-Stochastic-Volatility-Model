@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.linalg
 
 def decompose_cholesky(M):
     '''
@@ -76,3 +77,13 @@ def brownian(N, M, T):
     W = np.cumsum(np.sqrt(dT)*Z, axis=1)
     
     return W
+
+def integrate(T, b, a, d, num_int=200):
+    assert b.shape == (d, d) and a.shape == (d, d)
+    dt = T / num_int
+    lst_t = np.arange(num_int) * dt
+    dqt = np.array([scipy.linalg.expm(t * b).dot(a.T) for t in lst_t])
+    dqt = np.array([dqt[i].dot(dqt[i].T) for i in range(num_int)])
+
+    return np.sum(dqt, axis=0) * dt
+
