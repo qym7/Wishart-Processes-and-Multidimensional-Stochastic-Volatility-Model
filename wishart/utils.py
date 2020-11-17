@@ -57,7 +57,7 @@ def exp(M):
     return v.dot(np.exp(d)).dot(v.T)
 
 
-def brownian(N, M, T):
+def brownian(N, M, T, method="exact"):
     '''
     Function used to generate Brownian motion path.
     * Params:
@@ -68,9 +68,25 @@ def brownian(N, M, T):
         W : The brownian motion paths. Of shape (M, N+1).
     '''
     dT = T/N
-    
     # Define Z, a matrix of shape M*N.
-    Z = np.random.normal(size=(M, N))
+    if method == "exact":
+        Z = np.random.normal(size=(M, N))
+    elif method == "2":
+        Z = np.random.rand(M,N)
+        Z[Z<2/3] = 0
+        Z[(Z>=2/3)|(Z<5/6)] = np.sqrt(3)
+        Z[Z>=5/6] = np.sqrt(3)
+    elif method == "3":
+        Z = np.random.rand(M,N)
+        p = (np.sqrt(6)-2)/(4*np.sqrt(6))
+        v1 = np.sqrt(3+np.sqrt(6))
+        v2 = np.sqrt(3-np.sqrt(6))
+        Z[Z<p] = -v1
+        Z[(Z>=p)&(Z<1/2)] = -v2
+        Z[(Z>=1/2)|(Z<1-p)] = v2
+        Z[Z>=1-p] = v1
+    else:
+        raise ("Method is not supported, please choose from [exact, 2, 3]")
     # Add a column of zeros to Z.
     Z = np.concatenate([np.zeros((M,1)), Z], axis=1)
     # Calculate W, the matrix of M discrete Brownian motions. Each row is a Brownian motion.

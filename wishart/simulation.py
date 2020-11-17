@@ -62,7 +62,7 @@ class Wishart():
 
         return np.array(lst_hru)
 
-    def wishart_e(self, T, N, num=1, x=None, W=None):
+    def wishart_e(self, T, N, num=1, x=None, method="exact"):
         '''
         :param T: Non-negative real number.
         :param N: Positive integer. The number of discrete time points.
@@ -94,11 +94,11 @@ class Wishart():
         u[1:] = np.linalg.inv(c).dot(xp[0, 1:r+1])
         u[0] = xp[0, 0] - (u[1:]*u[1:]).sum()
         lst_proc_X = []
-        
-        for _ in range(num):
-            W = utils.brownian(N=N, M=r, T=T)  # Of shape (N+1, r).
+
+        for i in range(num):
+            W = utils.brownian(N=N, M=r, T=T, method=method)  # Of shape (N+1, r).
             cir_u0 = CIR(k=0, a=self.alpha-r, sigma=2, x0=u[0])  # The CIR generator.
-            u0 = cir_u0(T=T, n=N, num=1)[0]  # Of shape (N+1,)
+            u0 = cir_u0(T=T, n=N, num=1, method=method)[0]  # Of shape (N+1,)
             proc_U = np.zeros((N+1, r+1))
             proc_U[:, 0] = u0
             proc_U[:, 1:] = (u[1:] + W).reshape(-1, 1)
@@ -108,7 +108,8 @@ class Wishart():
 
         return np.array(lst_proc_X)
 
-    def wishart_i(self, T, n, N=100, num=1, x=None):
+
+    def wishart_i(self, T, n, N=100, num=1, x=None, method="exact"):
         '''
         :param T: Non-negative real number.
         :param n: Positive integer. The n of I_d^n.
@@ -127,26 +128,16 @@ class Wishart():
             p[0, 0] = p[k, k] = 0
             p[k, 0] = p[0, k] = 1
             if k == 0:
-                Y = self.wishart_e(T, N=N, num=num, x=y)[:, -1]
+                Y = self.wishart_e(T, N=N, num=num, x=y, method=method)[:, -1]
                 y = Y
             else:
                 y = np.array([p.dot(y[i]).dot(p) for i in range(num)])
-                Y = np.array([self.wishart_e(T, N=N, x=y[i])[0, -1] for i in range(num)])
+                Y = np.array([self.wishart_e(T, N=N, x=y[i], method=method)[0, -1] for i in range(num)])
                 y = np.array([p.dot(Y[i]).dot(p) for i in range(num)])
 
         return y
 
-    def to_integrate(self, a, b, s):
-        '''
-        Returns: terme to intergrate when s*b is inversible.
-        '''
-        D, V = utils.diag(s*b)
-        exp = V.dot(np.exp(D)).dot(V.T)
-        exp_T = V.T.dot(np.exp(D.T)).dot(V)
-
-        return exp.dot(a.T).dot(a).dot(exp_T)
-
-    def wishart(self, T, b, a, N=1, num=1, x=None, num_int=200):
+    def wishart(self, T, b, a, N=1, num=1, x=None, num_int=200, method="exact"):
         '''
         :param T: Non-negative real number.
         :param N: Positive integer. The number of discrete time points.
@@ -170,12 +161,11 @@ class Wishart():
         m = scipy.linalg.expm(b*T)
         theta_inv = np.linalg.inv(theta)
         x_tmp = theta_inv.dot(m).dot(x).dot(m.T).dot(theta_inv.T)
-        Y = self.wishart_i(T=T, n=n, N=N, num=num, x=x_tmp)
+        Y = self.wishart_i(T=T, n=n, N=N, num=num, x=x_tmp, method=method)
         X = np.array([theta.dot(Y[i]).dot(theta.T) for i in range(num)])
         
         return X
 
     def __call__(self, T, b, a, N=1, num=1, x=None, method="exact"):
-        if method == "exact":
-            return self.wishart(T, b, a, N=N, x=x, num=num)
+        return self.wishart(T, b, a, N=N, x=x, num=num)
 
