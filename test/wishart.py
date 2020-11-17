@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from wishart.wishart_simu import Wishart
+from wishart.simulation import Wishart
 
 x = np.array([[1,1],[1,2]])
 b = np.array([[1,0],[0,0]])

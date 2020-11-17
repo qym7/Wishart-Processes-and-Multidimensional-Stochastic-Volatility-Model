@@ -1,1 +1,1 @@
-from .cir import CIR
+from .simulation import CIR

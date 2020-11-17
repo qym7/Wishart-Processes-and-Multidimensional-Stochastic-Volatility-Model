@@ -3,7 +3,7 @@ import scipy.linalg
 import matplotlib.pyplot as plt
 
 from wishart import utils
-from wishart.wishart_simu import Wishart
+from wishart.simulation import Wishart
 
 def exact_exp_trace(x, alpha, b, a, t, vr, vi, num_int=200):
     if x is None:

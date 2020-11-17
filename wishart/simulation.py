@@ -175,6 +175,7 @@ class Wishart():
         
         return X
 
-    def __call__(self, T, b, a, N=1, num=1, x=None):
-        return self.wishart(T, b, a, N=N, x=x, num=num)
+    def __call__(self, T, b, a, N=1, num=1, x=None, method="exact"):
+        if method == "exact":
+            return self.wishart(T, b, a, N=N, x=x, num=num)
 
