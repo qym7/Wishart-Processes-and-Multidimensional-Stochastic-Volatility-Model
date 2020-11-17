@@ -166,6 +166,14 @@ class Wishart():
         
         return X
 
+    def affine(self, T, b, a, N=1, num=1, x=None, num_int=200):
+        raise NotImplementedError
+
+    def faster_affine(self, T, b, a, N=1, num=1, x=None, num_int=200):
+        raise NotImplementedError
+
+    def euler_scheme(self):
+        raise NotImplementedError
+
     def __call__(self, T, b, a, N=1, num=1, x=None, method="exact"):
         return self.wishart(T, b, a, N=N, x=x, num=num)
-
