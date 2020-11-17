@@ -121,22 +121,18 @@ class Wishart():
         y = x.copy()
         I = np.eye(self.d)
         I[n:, n:] = np.zeros((self.d-n, self.d-n))
-        
-#         lst_xT = []
+
         for k in range(n):
             p = np.eye(self.d)
             p[0, 0] = p[k, k] = 0
             p[k, 0] = p[0, k] = 1
             if k == 0:
-#                 Y = self.wishart_e(T, N, p.dot(y).dot(p))
                 Y = self.wishart_e(T, N=N, num=num, x=y)[:, -1]
                 y = Y
             else:
-#                 Y = np.array([self.wishart_e(T, N, p.dot(y[i]).dot(p))[-1] for i in range(N+1)])
                 y = np.array([p.dot(y[i]).dot(p) for i in range(num)])
                 Y = np.array([self.wishart_e(T, N=N, x=y[i])[0, -1] for i in range(num)])
                 y = np.array([p.dot(Y[i]).dot(p) for i in range(num)])
-#             y = np.array([p.dot(Y[i]).dot(p.T) for i in range(N+1)])  # Of shape (N+1, d, d)
 
         return y
 
@@ -160,13 +156,10 @@ class Wishart():
         :param num: num of simulations
         :return: an np.array of shape (num, self.d, self.d).
         '''
-        
         if x is None:
             x = self.x
-
         # Here we shall find a method to calculate q.
         qT = utils.integrate(T, b, a, self.d, num_int=num_int)
-        
         # Calculate p, cn, kn, 
         c, k, p, n = utils.decompose_cholesky(qT/T)
         # Build theta_t.
@@ -174,35 +167,13 @@ class Wishart():
         theta[:n, :n] = c
         theta[n:, :n] = k
         theta = np.linalg.inv(p).dot(theta)
-#         m = utils.exp(T*b)
         m = scipy.linalg.expm(b*T)
         theta_inv = np.linalg.inv(theta)
         x_tmp = theta_inv.dot(m).dot(x).dot(m.T).dot(theta_inv.T)
-#         x_tmp = np.linalg.inv(theta[i-1]).dot(m[i-1]).dot(x).dot(m[i-1].T).dot(np.linalg.inv(theta[i-1]).T)
         Y = self.wishart_i(T=T, n=n, N=N, num=num, x=x_tmp)
         X = np.array([theta.dot(Y[i]).dot(theta.T) for i in range(num)])
         
         return X
-        
-        
-#         for k in range(num):
-#             theta = np.array([np.eye(self.d) for i in range(N)])
-#             m = np.zeros((N, self.d, self.d))
-#             Y = np.zeros((N + 1, self.d, self.d))
-#             for i in range(1, N+1):
-#                 t = i*delta_t
-#                 c, k, p, n = utils.decompose_cholesky(q[i-1] / (t))
-#                 theta[i-1, :n, :n] = c
-#                 theta[i-1, n:, :n] = k
-#                 theta[i-1] = np.linalg.inv(p).dot(theta[i-1])
-#                 m[i-1] = utils.exp(t*b)
-#                 x_tmp = np.linalg.inv(theta[i-1]).dot(m[i-1]).dot(x).dot(m[i-1].T).dot(np.linalg.inv(theta[i-1]).T)
-#                 Y[i] = self.wishart_i(t, N, x_tmp)[-1]
-#                 Y[i] = theta[i-1].dot(Y[i]).dot(theta[i-1].T)
-#             Y[0] = x
-#             Y_list += [Y]
-
-#         return np.array(Y_list)
 
     def __call__(self, T, b, a, N=1, num=1, x=None):
         return self.wishart(T, b, a, N=N, x=x, num=num)
