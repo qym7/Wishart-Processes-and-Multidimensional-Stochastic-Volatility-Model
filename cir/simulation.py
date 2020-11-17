@@ -19,7 +19,7 @@ class CIR:
     '''
     The Class of CIR process generator.
     '''
-    def __init__(self, k, a, sigma, x0, exact=True, order=2):
+    def __init__(self, k, a, sigma, x0):
         '''
         d Vt = (a - kVt)dt + sigma sqrt(Vt) d Wt
         * Params:
@@ -27,8 +27,6 @@ class CIR:
             a : Pos number.
             sigma: Pos number.
             x0 : Initial value.
-            exact ： boolean, indicating whether using excat or scheme simulation.
-            order : The order of scheme. If exact is True, order will be ignored.
         '''
         assert k >= 0
         assert a > 0

@@ -52,11 +52,12 @@ def compare_diff(l, x, alpha, b, a, t, n_simu=100, num_int=200):
     plt.show()
 
 
-t = 2.0
-x = np.array([[1,0],[0,2]])
-b = np.array([[1,1],[1,1]])
-a = np.array([[2,-1],[2,1]])
-alpha = 3
-l = range(1, 20)
-# show_diff(l, x, alpha, b, a, t, n_simu=50, num_int=200, method="3")
-compare_diff(l, x, alpha, b, a, t, n_simu=50, num_int=200)
+if __name__ == '__main__':
+    t = 2.0
+    x = np.array([[1,0],[0,2]])
+    b = np.array([[1,1],[1,1]])
+    a = np.array([[2,-1],[2,1]])
+    alpha = 3
+    l = range(1, 20)
+    # show_diff(l, x, alpha, b, a, t, n_simu=50, num_int=200, method="3")
+    compare_diff(l, x, alpha, b, a, t, n_simu=50, num_int=200)
