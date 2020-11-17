@@ -4,6 +4,7 @@ Defined the class CIR which generates discretised CIR process.
 Benxin ZHONG
 '''
 import numpy as np
+import sampling
 
 class CIR:
     '''
