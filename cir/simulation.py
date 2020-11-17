@@ -126,7 +126,7 @@ class CIR:
 
     def scheme_3_cir(self, t, T, n, num=1, x0=None):
         psi_kt = psi(-1 * self.k, T)
-        Y = sampling.bounded_gauss(size=(num, n))
+        Y = sampling.bounded_gauss(size=(num, n), order=3)
         epsilon = np.random.randint(2, size=(num, n)) * 2 - 1
         zeta = np.random.randint(3, size=(num, n))
         U = np.random.uniform(size=(num, n))

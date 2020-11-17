@@ -110,7 +110,7 @@ def chi_2(p, q, lam=0.0, size=None):
     return lst_X
 
 
-def bounded_gauss(size=1, n_moment=5):
+def bounded_gauss(size=1, order=2):
     '''
     Function used to generate the required size of indep instances of Y,
     where P[Y=sqrt(3)] = P[Y=-sqrt(3)] = 1/6, and P[Y=0] = 2/3.
@@ -118,12 +118,12 @@ def bounded_gauss(size=1, n_moment=5):
     U = np.random.uniform(size=size)
     Y = np.zeros_like(U)
     
-    if n_moment == 5:
+    if order == 2:
         ind_pos = U < 1/6
         ind_neg = U > 5/6
         Y[ind_pos] = np.sqrt(3)
         Y[ind_neg] = -1 * np.sqrt(3)
-    elif n_moment == 7:
+    elif order == 3:
         # Seprate sqrt(3 + sqrt(6)) and sqrt(3 - sqrt(6))
         ind_pos = U < (np.sqrt(6)-2) / (2*np.sqrt(6))
         ind_neg = ~ind_pos
@@ -135,6 +135,6 @@ def bounded_gauss(size=1, n_moment=5):
         ind_neg = ~ind_pos
         Y[ind_neg] = Y[ind_neg] * (-1)
     else:
-        raise ('Err, n_moment shall be 5 or 7.')
+        raise ('Err, order shall be 2 or 3.')
     
     return Y
