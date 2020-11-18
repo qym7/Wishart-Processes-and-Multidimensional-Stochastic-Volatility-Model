@@ -137,18 +137,20 @@ class Wishart():
 
         return y
 
-    def wishart(self, T, b, a, N=1, num=1, x=None, num_int=200, method="exact"):
+    def wishart(self, T, x=None, N=1, num=1, num_int=200, method="exact"):
         '''
         :param T: Non-negative real number.
         :param N: Positive integer. The number of discrete time points.
         :param x: Pos-def matrix. The initial value. If x is None, self.x is used.
-        :param b: Matrix of shape (self.d, self.d)
-        :param a: Matrix of shape (self.d, self.d)
         :param num: num of simulations
+        
+        method: exact, 2, 3 or euler.
         :return: an np.array of shape (num, self.d, self.d).
         '''
         if x is None:
             x = self.x
+        a = self.a
+        b = self.b
         # Here we shall find a method to calculate q.
         qT = utils.integrate(T, b, a, self.d, num_int=num_int)
         # Calculate p, cn, kn, 
@@ -165,6 +167,46 @@ class Wishart():
         X = np.array([theta.dot(Y[i]).dot(theta.T) for i in range(num)])
         
         return X
+    
+    def euler(self, T, x=None, N=100, num=1):
+        '''
+        Euler discretization scheme.
+        return:
+            X, of shape (num, N+1, d, d).
+        '''
+        if x is None:
+            x = self.x
+        else:
+            assert x.shape == (self.d, self.d)
+        a = self.a
+        b = self.b
+        alpha_bar = self.alpha * a.T.dot(a)
+        
+        dt = T/N
+        dW = np.sqrt(dt) * np.random.normal(size=(num, N, self.d, self.d))
+        X = np.zeros((num, N+1, self.d, self.d))
+        X[:, 0] = x
+        for i in range(1, N+1):
+            X0 = X[:, i-1]
+            # Calculate \bar{alpha} + B(X0).
+            xbt = np.matmul(X0, b.T)
+            tmp_t = alpha_bar + (xbt + xbt.transpose((0,2,1)))
+            
+            # Calculate sqrt(X0).
+            sqrt_X0 = np.array([scipy.linalg.sqrtm(X0[j]) for j in range(num)])
+            sqrt_x0 = sqrt_x0.real # Incase where X0 is not non-neg definit.
+            # Calculate sqrt{X0}dWa
+            dWt = dW[:, i-1]
+            tmp_W = np.matmul(np.matmul(X0, dWt), a)
+            tmp_W = tmp_W + tmp_W.transpose((0,2,1))
+            
+            X1 = tmp_t + tmp_W
+            X[:, i] = X1
+        
+        return X
+            
+            
+        
 
     def affine(self, T, b, a, N=1, num=1, x=None, num_int=200):
         raise NotImplementedError
@@ -175,5 +217,8 @@ class Wishart():
     def euler_scheme(self):
         raise NotImplementedError
 
-    def __call__(self, T, b, a, N=1, num=1, x=None, method="exact"):
-        return self.wishart(T, b, a, N=N, x=x, num=num)
+    def __call__(self, T, x=None, N=1, num=1, method="exact"):
+        if method=="euler":
+            return self.euler(T=T, x=x, N=N, num=num)
+        else:
+            return self.wishart(T, N=N, x=x, num=num, method=method)
