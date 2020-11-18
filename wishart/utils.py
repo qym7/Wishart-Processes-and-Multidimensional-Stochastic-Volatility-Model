@@ -72,9 +72,9 @@ def brownian(N, M, T, method="exact"):
     # Define Z, a matrix of shape M*N.
     if method == "exact":
         Z = np.random.normal(size=(M, N))
-    elif method == "2":
+    elif method == "2" or method == 2:
         Z = sampling.bounded_gauss(size=(M, N))
-    elif method == "3":
+    elif method == "3" or method == 3:
         Z = sampling.bounded_gauss(size=(M, N), order=3)
     else:
         raise ("Method is not supported, please choose from [exact, 2, 3]")

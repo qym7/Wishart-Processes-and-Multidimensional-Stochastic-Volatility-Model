@@ -16,7 +16,7 @@ class Wishart():
         try:
             np.linalg.cholesky(x)
         except:
-            print("Err, x is not a symetric positive definite matrix.")
+            raise "Err, x is not a symetric positive definite matrix."
         self.x = x
         self.d = x.shape[0]
         assert alpha >= self.d - 1
@@ -93,6 +93,12 @@ class Wishart():
         u = np.zeros(r+1)
         u[1:] = np.linalg.inv(c).dot(xp[0, 1:r+1])
         u[0] = xp[0, 0] - (u[1:]*u[1:]).sum()
+        
+        if u[0] < 0:
+            print(f'u is {u}.')
+            print(f'x is {x}.')
+            print(f'xp is {xp}.')
+        
         lst_proc_X = []
 
         for i in range(num):
@@ -101,7 +107,7 @@ class Wishart():
             u0 = cir_u0(T=T, n=N, num=1, method=method)[0]  # Of shape (N+1,)
             proc_U = np.zeros((N+1, r+1))
             proc_U[:, 0] = u0
-            proc_U[:, 1:] = (u[1:] + W).reshape(-1, 1)
+            proc_U[:, 1:] = u[1:] + W
             proc_X = self.hr(u=proc_U, r=r, c=c, k=k)  # Of shape (N+1, d, d)
             proc_X = [pi.T.dot(Xt).dot(pi) for Xt in proc_X]
             lst_proc_X.append(np.array(proc_X))
@@ -131,13 +137,15 @@ class Wishart():
                 Y = self.wishart_e(T, N=N, num=num, x=y, method=method)[:, -1]
                 y = Y
             else:
-                y = np.array([p.dot(y[i]).dot(p) for i in range(num)])
+#                 y = np.array([p.dot(y[i]).dot(p) for i in range(num)])
+                y = np.matmul(p, np.matmul(y, p))
                 Y = np.array([self.wishart_e(T, N=N, x=y[i], method=method)[0, -1] for i in range(num)])
-                y = np.array([p.dot(Y[i]).dot(p) for i in range(num)])
+#                 y = np.array([p.dot(Y[i]).dot(p) for i in range(num)])
+                y = np.matmul(p, np.matmul(Y, p))
 
         return y
 
-    def wishart(self, T, x=None, N=1, num=1, num_int=200, method="exact"):
+    def wishart(self, T, x=None, N=1, num=1, method="exact", **kwargs):
         '''
         :param T: Non-negative real number.
         :param N: Positive integer. The number of discrete time points.
@@ -151,8 +159,14 @@ class Wishart():
             x = self.x
         a = self.a
         b = self.b
+        if 'num_int' in kwargs:
+            num_int = kwargs['num_int']
+        else:
+            num_int = 200
+        
         # Here we shall find a method to calculate q.
         qT = utils.integrate(T, b, a, self.d, num_int=num_int)
+        print(f'qT : {qT}')
         # Calculate p, cn, kn, 
         c, k, p, n = utils.decompose_cholesky(qT/T)
         # Build theta_t.
@@ -163,16 +177,18 @@ class Wishart():
         m = scipy.linalg.expm(b*T)
         theta_inv = np.linalg.inv(theta)
         x_tmp = theta_inv.dot(m).dot(x).dot(m.T).dot(theta_inv.T)
+        print(f'x_tmp : {x_tmp}')
         Y = self.wishart_i(T=T, n=n, N=N, num=num, x=x_tmp, method=method)
         X = np.array([theta.dot(Y[i]).dot(theta.T) for i in range(num)])
         
         return X
     
-    def euler(self, T, x=None, N=100, num=1):
+    def euler(self, T, x=None, N=100, num=1, **kwargs):
         '''
         Euler discretization scheme.
         return:
-            X, of shape (num, N+1, d, d).
+            X, of shape (num, d, d). 
+                if trace=True is indicated, X is of shape (num, N+1, d, d).
         '''
         if x is None:
             x = self.x
@@ -203,7 +219,10 @@ class Wishart():
             X1 = tmp_t + tmp_W
             X[:, i] = X1
         
-        return X
+        if 'trace' in kwargs and kwargs['trace']:
+            return X
+        else:
+            return X[:, -1]
             
             
         
@@ -213,12 +232,36 @@ class Wishart():
 
     def faster_affine(self, T, b, a, N=1, num=1, x=None, num_int=200):
         raise NotImplementedError
+        
+    def character(self, T, v, x=None, num_int=200):
+        '''
+        Function used to calculate E[exp(Tr(vX_T))].
+        * Params:
+            v : A sequence of matrices, of shape (num, d, d).
+        * Return:
+            char : A sequence of chars, of shape (num, )
+        '''
+        if x is None:
+            x = self.x
+        qt = utils.integrate(T, self.b, self.a, d=self.d, num_int=num_int)
+        mt = scipy.linalg.expm(T*self.b)
+        qtv = np.matmul(qt, v) # Of shape (num, d, d).
+        Idqtv = (np.eye(self.d) - 2*qtv)
+        tmp = np.linalg.inv(Idqtv)
+        tmp = np.matmul(v, tmp)
+        tmp = np.matmul(tmp, mt.dot(x).dot(mt.T))
+        nom = np.exp(np.trace(tmp, axis1=1, axis2=2)) # of shape (num, )
+        
+        det = np.linalg.det(Idqtv)
+        den = np.power(det, self.alpha/2)
+        
+        return nom/den
+        
+        
 
-    def euler_scheme(self):
-        raise NotImplementedError
 
-    def __call__(self, T, x=None, N=1, num=1, method="exact"):
+    def __call__(self, T, x=None, N=1, num=1, method="exact", **kwargs):
         if method=="euler":
-            return self.euler(T=T, x=x, N=N, num=num)
+            return self.euler(T=T, x=x, N=N, num=num, **kwargs)
         else:
-            return self.wishart(T, N=N, x=x, num=num, method=method)
+            return self.wishart(T, N=N, x=x, num=num, method=method, **kwargs)

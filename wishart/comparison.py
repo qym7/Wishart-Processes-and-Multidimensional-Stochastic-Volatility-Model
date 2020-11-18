@@ -2,12 +2,14 @@ import numpy as np
 import scipy.linalg
 import matplotlib.pyplot as plt
 
-from wishart import utils
-from wishart.simulation import Wishart
+import sys
+sys.path.append('./Processus-Wishart-513/')
+
+from . import utils
+from .simulation import Wishart
+
 
 def exact_exp_trace(x, alpha, b, a, t, vr, vi, num_int=200):
-    if x is None:
-        x = x
     d = x.shape[0]
     qt = utils.integrate(t, b, a, d=d, num_int=num_int)
     mt = scipy.linalg.expm(t * b)
@@ -18,7 +20,7 @@ def exact_exp_trace(x, alpha, b, a, t, vr, vi, num_int=200):
 
 def compare_exp_trace(x, alpha, b, a, t, vr, vi, n_simu=100, num_int=200, method="exact"):
     wishart = Wishart(x, alpha, a=a, b=b)
-    simu_res = wishart(t, b, a, N=1, num=n_simu, x=x, method=method)
+    simu_res = wishart(t, N=1, num=n_simu, x=x, method=method)
     simu_res = np.exp(np.trace(simu_res.dot(vr+1j*vi))).mean(axis=0)
     exact_res = exact_exp_trace(x, alpha, b, a, t, vr, vi, num_int=num_int)
 
