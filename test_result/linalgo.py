@@ -9,5 +9,10 @@ def test_deposition():
     print(k)
     print(p)
     print(r)
+    b = np.zeros(a.shape)
+    b[:r,:r] = c
+    b[r:,:r] = k
+    print(a)
+    print(p.T.dot(b.dot(b.T)).dot(p))
 
 test_deposition()

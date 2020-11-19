@@ -20,7 +20,7 @@ def decompose_cholesky(M):
     diag = np.diag(A)
     for i in range(n):
         A_diag = diag[i:]
-        q = np.argmax(A_diag)+i
+        q = np.argmax(A_diag) + i
         if diag[q] > 0:
             r += 1
             p[[i, q], :] = p[[q, i], :]
@@ -31,7 +31,7 @@ def decompose_cholesky(M):
             for j in range(i+1,n):
                 A[j:n, j] = A[j:n, j] - A[j:n, i]*A[j, i]
 
-    A = np.tril(A, k=1)
+    A = np.tril(A, k=0)
     c = A[:r, :r]
     k = A[r:, :r]
 

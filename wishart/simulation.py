@@ -207,15 +207,13 @@ class Wishart():
             # Calculate \bar{alpha} + B(X0).
             xbt = np.matmul(X0, b.T)
             tmp_t = alpha_bar + (xbt + xbt.transpose((0,2,1)))
-            
             # Calculate sqrt(X0).
-            sqrt_X0 = np.array([scipy.linalg.sqrtm(X0[j]) for j in range(num)])
+            sqrt_x0 = np.array([scipy.linalg.sqrtm(X0[j]) for j in range(num)])
             sqrt_x0 = sqrt_x0.real # Incase where X0 is not non-neg definit.
             # Calculate sqrt{X0}dWa
             dWt = dW[:, i-1]
-            tmp_W = np.matmul(np.matmul(X0, dWt), a)
+            tmp_W = np.matmul(np.matmul(sqrt_x0, dWt), a)
             tmp_W = tmp_W + tmp_W.transpose((0,2,1))
-            
             X1 = tmp_t + tmp_W
             X[:, i] = X1
         
