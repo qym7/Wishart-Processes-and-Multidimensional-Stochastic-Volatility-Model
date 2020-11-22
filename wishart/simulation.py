@@ -81,10 +81,10 @@ class Wishart():
         else:
             x = np.array(x)
             assert len(x.shape)==2 and x.shape[0]==self.d and x.shape[1]==self.d
-            try:
-                np.linalg.cholesky(x)
-            except:
-                print("Err, x is not a symetric positive definite matrix.")
+#             try:
+            np.linalg.cholesky(x)
+#             except:
+#                 raise f"Err, x is not a symetric positive definite matrix. \n {x}"
             c, k, p, r = utils.decompose_cholesky(x[1:, 1:])
             
         pi = np.eye(self.d)
@@ -93,17 +93,22 @@ class Wishart():
         u = np.zeros(r+1)
         u[1:] = np.linalg.inv(c).dot(xp[0, 1:r+1])
         u[0] = xp[0, 0] - (u[1:]*u[1:]).sum()
+#         print(f'u is {u}.')
+#         print(f'x is {x}.')
+#         print(f'xp is {xp}.')
         
-        if u[0] < 0:
-            print(f'u is {u}.')
-            print(f'x is {x}.')
-            print(f'xp is {xp}.')
+#         if u[0] < 0:
+#             print(f'u is {u}.')
+#             print(f'x is {x}.')
+#             print(f'xp is {xp}.')
+#         assert u[0] >= 0
+        cir_u0 = CIR(k=0, a=self.alpha-r, sigma=2, x0=u[0])  # The CIR generator.
         
         lst_proc_X = []
 
         for i in range(num):
-            W = utils.brownian(N=N, M=r, T=T, method=method)  # Of shape (N+1, r).
-            cir_u0 = CIR(k=0, a=self.alpha-r, sigma=2, x0=u[0])  # The CIR generator.
+            W = utils.brownian(N=N, M=r, T=T, method=method)  # Of shape (r, N+1).
+            W = W.T # of shape (N+1, r).
             u0 = cir_u0(T=T, n=N, num=1, method=method)[0]  # Of shape (N+1,)
             proc_U = np.zeros((N+1, r+1))
             proc_U[:, 0] = u0
@@ -166,7 +171,7 @@ class Wishart():
         
         # Here we shall find a method to calculate q.
         qT = utils.integrate(T, b, a, self.d, num_int=num_int)
-        print(f'qT : {qT}')
+#         print(f'qT : {qT}')
         # Calculate p, cn, kn, 
         c, k, p, n = utils.decompose_cholesky(qT/T)
         # Build theta_t.
@@ -177,7 +182,7 @@ class Wishart():
         m = scipy.linalg.expm(b*T)
         theta_inv = np.linalg.inv(theta)
         x_tmp = theta_inv.dot(m).dot(x).dot(m.T).dot(theta_inv.T)
-        print(f'x_tmp : {x_tmp}')
+#         print(f'x_tmp : {x_tmp}')
         Y = self.wishart_i(T=T, n=n, N=N, num=num, x=x_tmp, method=method)
         X = np.array([theta.dot(Y[i]).dot(theta.T) for i in range(num)])
         

@@ -124,16 +124,18 @@ def bounded_gauss(size=1, order=2):
         Y[ind_pos] = np.sqrt(3)
         Y[ind_neg] = -1 * np.sqrt(3)
     elif order == 3:
-        # Seprate sqrt(3 + sqrt(6)) and sqrt(3 - sqrt(6))
+        # Seperate sqrt(3 + sqrt(6)) and sqrt(3 - sqrt(6))
         ind_pos = U < (np.sqrt(6)-2) / (2*np.sqrt(6))
         ind_neg = ~ind_pos
         Y[ind_pos] = np.sqrt(3 + np.sqrt(6))
         Y[ind_neg] = np.sqrt(3 - np.sqrt(6))
         # Genrate sign.
-        U = np.random.uniform(size=size)
-        ind_pos = U >= 0.5
-        ind_neg = ~ind_pos
-        Y[ind_neg] = Y[ind_neg] * (-1)
+#         U = np.random.uniform(size=size)
+#         ind_pos = U >= 0.5
+#         ind_neg = ~ind_pos
+#         Y[ind_neg] = Y[ind_neg] * (-1)
+        sign = np.random.randint(2, size=size)*2 - 1
+        Y = Y*sign
     else:
         raise ('Err, order shall be 2 or 3.')
     

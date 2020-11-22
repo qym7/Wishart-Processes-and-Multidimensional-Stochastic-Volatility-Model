@@ -35,6 +35,9 @@ class CIR:
         self.a = a
         self.sigma = sigma
         self.sigmasqr = sigma*sigma
+        if x0 < 0:
+            print(f'x0 is {x0}.')
+        assert x0 >= 0
         self.x0 = x0
         self.nu = 4*a / self.sigmasqr
         
@@ -66,9 +69,9 @@ class CIR:
         elif method == "2":
             return self.scheme_2_cir(h, n, num=num, x0=x0)
         elif method == "3":
-            return self.scheme_3_cir(h, T, n, num=num, x0=x0)
+            return self.scheme_3_cir(h, n, num=num, x0=x0)
 
-    def exact_cir(self, t, n, num=1, x0=None):
+    def exact_cir(self, t, n, num, x0):
         nita = self.nita(t)
         factor = np.exp(-1 * self.k * t) / nita
         # Generate Vt.
@@ -84,7 +87,7 @@ class CIR:
 
         return V
 
-    def scheme_2_cir(self, t, n, num=1, x0=None):
+    def scheme_2_cir(self, t, n, num, x0):
         sqrt_h = np.sqrt(t)
         V = np.zeros((num, n + 1))
         V[:, 0] = x0
@@ -124,8 +127,8 @@ class CIR:
 
         return V
 
-    def scheme_3_cir(self, t, T, n, num=1, x0=None):
-        psi_kt = psi(-1 * self.k, T)
+    def scheme_3_cir(self, t, n, num, x0):
+        psi_kt = psi(-1*self.k, t)
         Y = sampling.bounded_gauss(size=(num, n), order=3)
         epsilon = np.random.randint(2, size=(num, n)) * 2 - 1
         zeta = np.random.randint(3, size=(num, n))
@@ -139,6 +142,7 @@ class CIR:
             # Seperate x.
             ind_out = V[:, i - 1] >= K3
             ind_in = ~ind_out
+            
             # Process x >= K3.
             zeta_out = zeta[ind_out, i - 1]  # Random variable ksi.
             Y_out = Y[ind_out, i - 1]
@@ -147,6 +151,9 @@ class CIR:
             x1 = self.hat_x(x0, psi_kt, epsilon_out, zeta_out, Y_out)  # \hat{X}_{\psi_{-k}(t)}^{x, k=0}.
             x1 = np.exp(-self.k * t) * x1
             V[ind_out, i] = x1
+            
+#             assert (x1>=0).all()
+            
             # Process x < K3.
             U_in = U[ind_in, i - 1]
             x0 = V[ind_in, i - 1]
@@ -155,15 +162,18 @@ class CIR:
             tmp = m2 - m1 * m1
             s = (m3 - m1 * m2) / tmp
             p = (m1 * m3 - m2 * m2) / tmp
+            
             sqrt_Delta = np.sqrt(s * s - 4 * p)
             x_pos = (s + sqrt_Delta) / 2
             x_neg = (s - sqrt_Delta) / 2
             pi = (m1 - x_neg) / (sqrt_Delta)
-            ind_pos = U_in < pi
+            ind_pos = U_in <= pi
             ind_neg = ~ind_pos
             x1[ind_pos] = x_pos[ind_pos]
             x1[ind_neg] = x_neg[ind_neg]
             V[ind_in, i] = x1
+            
+#             assert (x1>=0).all()
 
         return V
                 
@@ -181,31 +191,31 @@ class CIR:
         ind_2 = zeta==2
         if self.nu >= 1: # sigma^2 <= 4a.
             # zeta = 0.
-            tmp = self.cir_x1(sqrt_t*Y[ind_0], x[ind_0])
-            tmp = self.cir_x0(t, tmp)
-            xt[ind_0] = self.cur_x(epsilon[ind_0]*t, tmp)
+            tmp = self.cir_x1(t=sqrt_t*Y[ind_0], x=x[ind_0])
+            tmp = self.cir_x0(t=t, x=tmp)
+            xt[ind_0] = self.cur_x(t=epsilon[ind_0]*t, x=tmp)
             # zeta = 1.
-            tmp = self.cir_x1(sqrt_t*Y[ind_1], x[ind_1])
-            tmp = self.cur_x(epsilon[ind_1]*t, tmp)
-            xt[ind_1] = self.cir_x0(t, tmp)
+            tmp = self.cir_x1(t=sqrt_t*Y[ind_1], x=x[ind_1])
+            tmp = self.cur_x(t=epsilon[ind_1]*t, x=tmp)
+            xt[ind_1] = self.cir_x0(t=t, x=tmp)
             # zeta = 2.
-            tmp = self.cur_x(epsilon[ind_2]*t, x[ind_2])
-            tmp = self.cir_x1(sqrt_t*Y[ind_2], tmp)
-            xt[ind_2] = self.cir_x0(t, tmp)
+            tmp = self.cur_x(t=epsilon[ind_2]*t, x=x[ind_2])
+            tmp = self.cir_x1(t=sqrt_t*Y[ind_2], x=tmp)
+            xt[ind_2] = self.cir_x0(t=t, x=tmp)
             
         else: # sigma^2 > 4a.
             # zeta = 0.
-            tmp = self.cir_x0(t, x[ind_0])
-            tmp = self.cir_x1(sqrt_t*Y[ind_0], tmp)
-            xt[ind_0] = self.cur_x(epsilon[ind_0]*t, tmp)
+            tmp = self.cir_x0(t=t, x=x[ind_0])
+            tmp = self.cir_x1(t=sqrt_t*Y[ind_0], x=tmp)
+            xt[ind_0] = self.cur_x(t=epsilon[ind_0]*t, x=tmp)
             # zeta = 1.
-            tmp = self.cir_x0(t, x[ind_1])
-            tmp = self.cur_x(epsilon[ind_1]*t, tmp)
-            xt[ind_1] = self.cir_x1(sqrt_t*Y[ind_1], tmp)
+            tmp = self.cir_x0(t=t, x=x[ind_1])
+            tmp = self.cur_x(t=epsilon[ind_1]*t, x=tmp)
+            xt[ind_1] = self.cir_x1(t=sqrt_t*Y[ind_1], x=tmp)
             # zeta = 2.
-            tmp = self.cur_x(epsilon[ind_2]*t, x[ind_2])
-            tmp = self.cir_x0(t, tmp)
-            xt[ind_2] = self.cir_x1(sqrt_t*Y[ind_2], tmp)
+            tmp = self.cur_x(t=epsilon[ind_2]*t, x=x[ind_2])
+            tmp = self.cir_x0(t=t, x=tmp)
+            xt[ind_2] = self.cir_x1(t=sqrt_t*Y[ind_2], x=tmp)
         
         return xt
 
@@ -234,6 +244,7 @@ class CIR:
         sigma = self.sigma
         
         tmp = np.sqrt(x) + sigma*t/2
+        tmp = tmp.clip(min=0)
         
         return tmp * tmp
     
@@ -242,7 +253,7 @@ class CIR:
         a = self.a
         tmp = np.abs(a - sigma*sigma/4)
         
-        return x + t*sigma*tmp/np.sqrt(2)
+        return x + t*sigma*np.sqrt(tmp)/np.sqrt(2)
     
     def phi(self, x, t, w):
         '''
@@ -284,7 +295,7 @@ class CIR:
         sigma = self.sigma
         k = self.k
         _psi = psi(-k, t)
-        if self.nu > 1: # 4a < sigma^2.
+        if self.nu < 1: # 4a < sigma^2.
             tmp = np.sqrt(sigma*sigma/4 - a) # \sqrt{sigma^2/4 - a}
             tmp = np.sqrt(sigma / (np.sqrt(2)) * tmp)
             tmp = tmp + sigma/2 * np.sqrt(3 + np.sqrt(6))
@@ -326,7 +337,7 @@ class CIR:
         tmp_psi = psi(k, t)
         part_2 = sigma*sigma*tmp_psi
         part_2 = part_2 * (a*tmp_psi/2 + x*np.exp(-k*t))
-        m2 = m1 + part_2
+        m2 = m1*m1 + part_2
         
         return m1, m2
     
