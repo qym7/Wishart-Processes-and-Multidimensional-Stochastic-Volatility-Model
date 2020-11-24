@@ -142,7 +142,6 @@ class CIR:
         K3 = self.K3(t)
         for i in range(1, n + 1):
             # Seperate x.
-#             print("debug", K3, V[:, i - 1])
             ind_out = V[:, i - 1] >= K3
             ind_in = ~ind_out
             # Process x >= K3.
@@ -173,8 +172,6 @@ class CIR:
             x1[ind_pos] = x_pos[ind_pos]
             x1[ind_neg] = x_neg[ind_neg]
             V[ind_in, i] = x1
-            
-#             assert (x1>=0).all()
 
         return V
                 
@@ -229,21 +226,20 @@ class CIR:
         tmp = np.exp(-1*self.k * h)
         nomerator = 4 * self.k * tmp
         denominator = self.sigmasqr * (1-tmp)
+
         return nomerator/denominator
     
     def cir_x0(self, x, t):
         k = self.k
         a = self.a
         sigma = self.sigma
-        
         psi_k = psi(k, t)
-        
         tmp = (a - sigma*sigma/4) * psi_k
+
         return x * np.exp(-k*t) + tmp
     
     def cir_x1(self, x, t):
         sigma = self.sigma
-        
         tmp = np.sqrt(x) + sigma*t/2
         tmp = tmp.clip(min=0)
         

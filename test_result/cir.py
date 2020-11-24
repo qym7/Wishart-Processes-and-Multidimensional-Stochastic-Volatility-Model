@@ -12,8 +12,6 @@ import sampling
 import cir
 import wishart
 
-
-
 k = 1/2
 a = 1/2
 sigma = 0.8

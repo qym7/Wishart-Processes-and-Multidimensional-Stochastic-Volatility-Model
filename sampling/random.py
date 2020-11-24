@@ -5,13 +5,15 @@ Benxin ZHONG
 '''
 import numpy as np
 
-def general_normal(q, size=1):
+def general_normal(q, size=None):
     '''
     Function to generate the samples of generalised Gaussian distribution.
     * Param(s):
         q : The parameter q in N(0, 1, q). Positive integer.
         size : Size of the generated sample. Shall be an integer, or an 1d array/tuple of integers.
     '''
+    if size is None:
+        size = 1
     # Check size.
     size = np.array(size, dtype=int)
     # Calculate the required number of sample instances.
@@ -42,8 +44,7 @@ def general_normal(q, size=1):
     assert len(lst_Zi) >= num
     X = (lst_Zi[:num]).reshape(size)
     return X
-    
-    
+
 def chi_2(p, q, lam=0.0, size=None):
     '''
     Function used to generate the samples of Chi-square distribution, with specified params nu and lambda,
@@ -109,7 +110,6 @@ def chi_2(p, q, lam=0.0, size=None):
     lst_X = np.array(lst_X).reshape(size)
     return lst_X
 
-
 def bounded_gauss(size=1, order=2):
     '''
     Function used to generate the required size of indep instances of Y,
@@ -130,10 +130,6 @@ def bounded_gauss(size=1, order=2):
         Y[ind_pos] = np.sqrt(3 + np.sqrt(6))
         Y[ind_neg] = np.sqrt(3 - np.sqrt(6))
         # Genrate sign.
-#         U = np.random.uniform(size=size)
-#         ind_pos = U >= 0.5
-#         ind_neg = ~ind_pos
-#         Y[ind_neg] = Y[ind_neg] * (-1)
         sign = np.random.randint(2, size=size)*2 - 1
         Y = Y*sign
     else:

@@ -53,7 +53,6 @@ def compare_diff(l, x, alpha, b, a, t, n_simu=100, num_int=200):
         plt.legend()
     plt.show()
 
-
 if __name__ == '__main__':
     t = 2.0
     x = np.array([[1,0],[0,2]])

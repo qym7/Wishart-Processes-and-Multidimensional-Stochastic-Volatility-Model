@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.linalg
-# from scipy.integrate import quad
 
 from wishart import utils
 from cir import CIR
@@ -16,7 +15,7 @@ class Wishart():
         try:
             np.linalg.cholesky(x)
         except:
-            raise "Err, x is not a symetric positive definite matrix."
+            raise ("Err, x is not a symetric positive definite matrix.")
         self.x = x
         self.d = x.shape[0]
         assert alpha >= self.d - 1
@@ -32,6 +31,12 @@ class Wishart():
             assert a.shape[0] == self.d and a.shape[1] == self.d
             self.a = a
         self.c, self.k, self.p, self.r = utils.decompose_cholesky(self.x[1:, 1:])
+
+    def __call__(self, T, x=None, N=1, num=1, method="exact", **kwargs):
+        if method=="euler":
+            return self.euler(T=T, x=x, N=N, num=num, **kwargs)
+        else:
+            return self.wishart(T, N=N, x=x, num=num, method=method, **kwargs)
 
     def hr(self, u, r=None, c=None, k=None):
         '''
@@ -81,10 +86,7 @@ class Wishart():
         else:
             x = np.array(x)
             assert len(x.shape)==2 and x.shape[0]==self.d and x.shape[1]==self.d
-#             try:
             np.linalg.cholesky(x)
-#             except:
-#                 raise f"Err, x is not a symetric positive definite matrix. \n {x}"
             c, k, p, r = utils.decompose_cholesky(x[1:, 1:])
             
         pi = np.eye(self.d)
@@ -93,15 +95,6 @@ class Wishart():
         u = np.zeros(r+1)
         u[1:] = np.linalg.inv(c).dot(xp[0, 1:r+1])
         u[0] = xp[0, 0] - (u[1:]*u[1:]).sum()
-#         print(f'u is {u}.')
-#         print(f'x is {x}.')
-#         print(f'xp is {xp}.')
-        
-#         if u[0] < 0:
-#             print(f'u is {u}.')
-#             print(f'x is {x}.')
-#             print(f'xp is {xp}.')
-#         assert u[0] >= 0
         cir_u0 = CIR(k=0, a=self.alpha-r, sigma=2, x0=u[0])  # The CIR generator.
         
         lst_proc_X = []
@@ -142,10 +135,8 @@ class Wishart():
                 Y = self.wishart_e(T, N=N, num=num, x=y, method=method)[:, -1]
                 y = Y
             else:
-#                 y = np.array([p.dot(y[i]).dot(p) for i in range(num)])
                 y = np.matmul(p, np.matmul(y, p))
                 Y = np.array([self.wishart_e(T, N=N, x=y[i], method=method)[0, -1] for i in range(num)])
-#                 y = np.array([p.dot(Y[i]).dot(p) for i in range(num)])
                 y = np.matmul(p, np.matmul(Y, p))
 
         return y
@@ -171,7 +162,6 @@ class Wishart():
         
         # Here we shall find a method to calculate q.
         qT = utils.integrate(T, b, a, self.d, num_int=num_int)
-#         print(f'qT : {qT}')
         # Calculate p, cn, kn, 
         c, k, p, n = utils.decompose_cholesky(qT/T)
         # Build theta_t.
@@ -182,7 +172,6 @@ class Wishart():
         m = scipy.linalg.expm(b*T)
         theta_inv = np.linalg.inv(theta)
         x_tmp = theta_inv.dot(m).dot(x).dot(m.T).dot(theta_inv.T)
-#         print(f'x_tmp : {x_tmp}')
         Y = self.wishart_i(T=T, n=n, N=N, num=num, x=x_tmp, method=method)
         X = np.array([theta.dot(Y[i]).dot(theta.T) for i in range(num)])
         
@@ -226,15 +215,6 @@ class Wishart():
             return X
         else:
             return X[:, -1]
-            
-            
-        
-
-    def affine(self, T, b, a, N=1, num=1, x=None, num_int=200):
-        raise NotImplementedError
-
-    def faster_affine(self, T, b, a, N=1, num=1, x=None, num_int=200):
-        raise NotImplementedError
         
     def character(self, T, v, x=None, num_int=200):
         '''
@@ -259,12 +239,3 @@ class Wishart():
         den = np.power(det, self.alpha/2)
         
         return nom/den
-        
-        
-
-
-    def __call__(self, T, x=None, N=1, num=1, method="exact", **kwargs):
-        if method=="euler":
-            return self.euler(T=T, x=x, N=N, num=num, **kwargs)
-        else:
-            return self.wishart(T, N=N, x=x, num=num, method=method, **kwargs)
