@@ -19,7 +19,7 @@ class CIR:
     '''
     The Class of CIR process generator.
     '''
-    def __init__(self, k, a, sigma, x0):
+    def __init__(self, k, a, sigma, x0, DEBUG=False):
         '''
         d Vt = (a - kVt)dt + sigma sqrt(Vt) d Wt
         * Params:
@@ -40,6 +40,8 @@ class CIR:
         assert x0 >= 0
         self.x0 = x0
         self.nu = 4*a / self.sigmasqr
+        
+        self.DEBUG = DEBUG
         
     def __call__(self, T, n, num=1, x0=None, method="exact"):
         '''
@@ -140,7 +142,7 @@ class CIR:
         K3 = self.K3(t)
         for i in range(1, n + 1):
             # Seperate x.
-            print("debug", K3, V[:, i - 1])
+#             print("debug", K3, V[:, i - 1])
             ind_out = V[:, i - 1] >= K3
             ind_in = ~ind_out
             # Process x >= K3.
@@ -149,7 +151,9 @@ class CIR:
             epsilon_out = epsilon[ind_out, i - 1]
             x0 = V[ind_out, i - 1]
             x1 = self.hat_x(x0, psi_kt, epsilon_out, zeta_out, Y_out)  # \hat{X}_{\psi_{-k}(t)}^{x, k=0}.
-            x1 = np.exp(-self.k * t) * x1
+            
+            if self.DEBUG:
+                x1 = np.exp(-self.k * t) * x1
             V[ind_out, i] = x1
             # Process x < K3.
             U_in = U[ind_in, i - 1]
@@ -299,7 +303,7 @@ class CIR:
             tmp = tmp*tmp + sigma*sigma/4 - a
             return _psi * tmp
 
-        elif self.nu > 1 and self.nu < 3: #4a/3 < sigma^2 < 4a.
+        elif self.nu < 3: #4a/3 < sigma^2 < 4a.
             tmp = np.sqrt(a - sigma*sigma/4)
             tmp = sigma * tmp / np.sqrt(2)
             tmp = np.sqrt(sigma*sigma/4 - a + tmp)
@@ -307,7 +311,7 @@ class CIR:
             tmp = tmp*tmp
             return _psi * tmp
 
-        elif self.nu >= 3: # sigma^2 < 4a/3.
+        else: # sigma^2 < 4a/3.
             tmp = np.sqrt(a - sigma*sigma/4)
             tmp = sigma * tmp / np.sqrt(2)
             return _psi * tmp
