@@ -19,7 +19,7 @@ class CIR:
     '''
     The Class of CIR process generator.
     '''
-    def __init__(self, k, a, sigma, x0, DEBUG=False):
+    def __init__(self, k, a, sigma, x0):
         '''
         d Vt = (a - kVt)dt + sigma sqrt(Vt) d Wt
         * Params:
@@ -40,8 +40,6 @@ class CIR:
         assert x0 >= 0
         self.x0 = x0
         self.nu = 4*a / self.sigmasqr
-        
-        self.DEBUG = DEBUG
         
     def __call__(self, T, n, num=1, x0=None, method="exact"):
         '''
@@ -150,9 +148,7 @@ class CIR:
             epsilon_out = epsilon[ind_out, i - 1]
             x0 = V[ind_out, i - 1]
             x1 = self.hat_x(x0, psi_kt, epsilon_out, zeta_out, Y_out)  # \hat{X}_{\psi_{-k}(t)}^{x, k=0}.
-            
-            if self.DEBUG:
-                x1 = np.exp(-self.k * t) * x1
+            x1 = np.exp(-self.k * t) * x1
             V[ind_out, i] = x1
             # Process x < K3.
             U_in = U[ind_in, i - 1]
@@ -190,29 +186,29 @@ class CIR:
         if self.nu >= 1: # sigma^2 <= 4a.
             # zeta = 0.
             tmp = self.cir_x1(t=sqrt_t*Y[ind_0], x=x[ind_0])
-            tmp = self.cir_x0(t=t, x=tmp)
+            tmp = self.cir_x0(t=t, x=tmp, k=0)
             xt[ind_0] = self.cur_x(t=epsilon[ind_0]*t, x=tmp)
             # zeta = 1.
             tmp = self.cir_x1(t=sqrt_t*Y[ind_1], x=x[ind_1])
             tmp = self.cur_x(t=epsilon[ind_1]*t, x=tmp)
-            xt[ind_1] = self.cir_x0(t=t, x=tmp)
+            xt[ind_1] = self.cir_x0(t=t, x=tmp, k=0)
             # zeta = 2.
             tmp = self.cur_x(t=epsilon[ind_2]*t, x=x[ind_2])
             tmp = self.cir_x1(t=sqrt_t*Y[ind_2], x=tmp)
-            xt[ind_2] = self.cir_x0(t=t, x=tmp)
+            xt[ind_2] = self.cir_x0(t=t, x=tmp, k=0)
             
         else: # sigma^2 > 4a.
             # zeta = 0.
-            tmp = self.cir_x0(t=t, x=x[ind_0])
+            tmp = self.cir_x0(t=t, x=x[ind_0], k=0)
             tmp = self.cir_x1(t=sqrt_t*Y[ind_0], x=tmp)
             xt[ind_0] = self.cur_x(t=epsilon[ind_0]*t, x=tmp)
             # zeta = 1.
-            tmp = self.cir_x0(t=t, x=x[ind_1])
+            tmp = self.cir_x0(t=t, x=x[ind_1], k=0)
             tmp = self.cur_x(t=epsilon[ind_1]*t, x=tmp)
             xt[ind_1] = self.cir_x1(t=sqrt_t*Y[ind_1], x=tmp)
             # zeta = 2.
             tmp = self.cur_x(t=epsilon[ind_2]*t, x=x[ind_2])
-            tmp = self.cir_x0(t=t, x=tmp)
+            tmp = self.cir_x0(t=t, x=tmp, k=0)
             xt[ind_2] = self.cir_x1(t=sqrt_t*Y[ind_2], x=tmp)
         
         return xt
@@ -229,8 +225,7 @@ class CIR:
 
         return nomerator/denominator
     
-    def cir_x0(self, x, t):
-        k = self.k
+    def cir_x0(self, x, t, k):
         a = self.a
         sigma = self.sigma
         psi_k = psi(k, t)
