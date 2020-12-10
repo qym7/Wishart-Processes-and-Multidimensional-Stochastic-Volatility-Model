@@ -123,7 +123,9 @@ class Wishart():
         '''
         if x is None:
             x = self.x
-        y = x.copy()
+#         y = x.copy()
+        y = np.zeros((num, self.d, self.d))
+        y = x
         I = np.eye(self.d)
         I[n:, n:] = np.zeros((self.d-n, self.d-n))
 
@@ -132,7 +134,8 @@ class Wishart():
             p[0, 0] = p[k, k] = 0
             p[k, 0] = p[0, k] = 1
             if k == 0:
-                Y = self.wishart_e(T, N=N, num=num, x=y, method=method)[:, -1]
+#                 Y = self.wishart_e(T, N=N, num=num, x=y, method=method)[:, -1]
+                Y = np.array([self.wishart_e(T, N=N, x=y[i], method=method)[0, -1] for i in range(num)])
                 y = Y
             else:
                 y = np.matmul(p, np.matmul(y, p))
@@ -160,22 +163,37 @@ class Wishart():
         else:
             num_int = 200
         
+        h = T/N
         # Here we shall find a method to calculate q.
-        qT = utils.integrate(T, b, a, self.d, num_int=num_int)
+        qh = utils.integrate(h, b, a, self.d, num_int=num_int)
         # Calculate p, cn, kn, 
-        c, k, p, n = utils.decompose_cholesky(qT/T)
+        c, k, p, n = utils.decompose_cholesky(qh/h)
         # Build theta_t.
         theta = np.eye(self.d)
         theta[:n, :n] = c
         theta[n:, :n] = k
         theta = np.linalg.inv(p).dot(theta)
-        m = scipy.linalg.expm(b*T)
+        m = scipy.linalg.expm(b*h)
         theta_inv = np.linalg.inv(theta)
-        x_tmp = theta_inv.dot(m).dot(x).dot(m.T).dot(theta_inv.T)
-        Y = self.wishart_i(T=T, n=n, N=N, num=num, x=x_tmp, method=method)
-        X = np.array([theta.dot(Y[i]).dot(theta.T) for i in range(num)])
+        tmp_fac = np.matmul(theta_inv, m)
         
-        return X
+        X_proc = np.zeros((num, N+1, self.d, self.d))
+        X_proc[:, 0] = x
+        for i in range(1, N+1):
+            x = X_proc[:, i-1]
+            x_tmp = np.matmul(tmp_fac, np.matmul(x, tmp_fac.T))
+            Y = self.wishart_i(T=h, n=n, N=1, num=num, x=x_tmp, method=method)
+            X = np.matmul(theta, np.matmul(Y, theta.T))
+            X_proc[:, i] = X
+        
+#         x_tmp = theta_inv.dot(m).dot(x).dot(m.T).dot(theta_inv.T)
+#         Y = self.wishart_i(T=T, n=n, N=N, num=num, x=x_tmp, method=method)
+#         X = np.array([theta.dot(Y[i]).dot(theta.T) for i in range(num)])
+        
+        if 'trace' in kwargs and kwargs['trace']:
+            return X_proc
+        else:
+            return X_proc[:, -1]
     
     def euler(self, T, x=None, N=100, num=1, **kwargs):
         '''
@@ -208,7 +226,7 @@ class Wishart():
             dWt = dW[:, i-1]
             tmp_W = np.matmul(np.matmul(sqrt_x0, dWt), a)
             tmp_W = tmp_W + tmp_W.transpose((0,2,1))
-            X1 = tmp_t + tmp_W
+            X1 = X0 + tmp_t + tmp_W
             X[:, i] = X1
         
         if 'trace' in kwargs and kwargs['trace']:
