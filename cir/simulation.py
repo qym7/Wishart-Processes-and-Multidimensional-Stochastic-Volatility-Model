@@ -363,3 +363,15 @@ class CIR:
         Delta = self.Delta(x, t)
         return (1 - np.sqrt(Delta)) / 2
     
+    
+    def character(self, T, v, x=None):
+        if x is None:
+            x = self.x0
+        nita = self.nita(T)
+        lam = x * nita
+        c = np.exp(-self.k * T) / nita
+        v = c*v
+        assert v < 1/2
+        
+        tmp = np.exp(lam*v/(1-2*v)) / ((1-2*v)**(self.nu/2))
+        return tmp
