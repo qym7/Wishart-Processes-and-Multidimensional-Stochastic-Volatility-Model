@@ -125,7 +125,7 @@ class Wishart():
             x = self.x
 #         y = x.copy()
         y = np.zeros((num, self.d, self.d))
-        y = x
+        y[:] = x
         I = np.eye(self.d)
         I[n:, n:] = np.zeros((self.d-n, self.d-n))
 
