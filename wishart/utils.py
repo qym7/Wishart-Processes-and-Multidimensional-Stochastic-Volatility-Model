@@ -50,14 +50,14 @@ def cholesky(M):
     for m in M_:
         c, k, p ,r = decompose_cholesky(m)
         p = np.array(p, dtype=float)
-        b = np.zeros(M.shape, dtype=float)
+        b = np.zeros(m.shape, dtype=float)
         b[:r, :r] = c
         b[r:, :r] = k
         lst_c.append(np.matmul(p.T, b))
     if len(shape)==2:
         return lst_c[0]
     else:
-        lst_c = np.arange(lst_c).reshape(shape)
+        lst_c = np.array(lst_c).reshape(shape)
         return lst_c
         
 
