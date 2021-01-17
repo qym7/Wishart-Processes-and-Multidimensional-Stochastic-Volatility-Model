@@ -12,7 +12,7 @@ import sampling
 import cir
 import wishart
 # from application import GS_model
-from .sufana import GS_model
+from application import GS_model
 
 
 def price_mc(model, num, r, T, K, N, method):

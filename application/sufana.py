@@ -32,8 +32,8 @@ class GS_model:
         assert X0.shape == (self.d, self.d)
         self.w_gen = wishart.Wishart(X0, alpha, b=b, a=a)
         
-    def __call__(self, num, N, T, ret_X=False, method='exact'):
-        return self.gen(num, N, T, ret_X, method)
+    def __call__(self, num, N, T, ret_vol=False, method='exact'):
+        return self.gen(num, N, T, ret_vol, method)
     
     def gen(self, num, N, T, ret_vol, method):
         h = T/N
@@ -49,6 +49,7 @@ class GS_model:
     def gen_S(self, h, X, method='exact'):
         num = X.shape[0]
         N = X.shape[1]-1
+        sqrt_h = np.sqrt(h)
         S = np.zeros((num, N+1, self.d))
         S[:, 0] = self.S0
         G = np.random.normal(size=(num, N, self.d, 1))
