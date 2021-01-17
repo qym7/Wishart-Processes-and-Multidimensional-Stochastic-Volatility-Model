@@ -104,11 +104,11 @@ def test_wishart_characteristic():
             XT = gen(T=T, N=N, num=num, x=x, method=method, **kwargs) # of shape (num, d, d).
             tmp = np.matmul(v, XT)
             trace = np.trace(tmp, axis1=1, axis2=2)
-            # char = np.cumsum(np.exp(trace)) / np.arange(1, num+1)
+    #         char = np.cumsum(np.exp(trace)) / np.arange(1, num+1)
             char = np.mean(np.exp(trace))
             lst_char.append(char)
-        return np.array(lst_char)
 
+        return np.array(lst_char)
     T = 10
 
     x = 0.4 * np.eye(3)
@@ -142,7 +142,7 @@ def test_wishart_characteristic():
     plt.legend()
     plt.xlabel('N')
     plt.title('Convergence of Wishart simulation methods')
-    #     plt.savefig('./wishart_cov.png')
+#     plt.savefig('./wishart_cov.png')
     plt.show()
 
 
@@ -166,15 +166,22 @@ def test_cholesky():
 def test_gs():
     import numpy as np
     import matplotlib.pyplot as plt
+    import scipy.stats as stats
+    import scipy.linalg
+    import importlib
     from tqdm import tqdm
 
     import sys
     sys.path.append('..')
 
+    import sampling
+    import cir
+    import wishart
+    # from application import GS_model
     from application import GS_model
 
-    def price_mc(model, num, r, T, K, N=10, method='exact'):
-        S, X = model(num=num, N=N, T=T, ret_vol=True, method=method)
+    def price_mc(model, num, r, T, K, N, method):
+        S, X = model(num=num, N=10, T=T, ret_vol=True, method=method)
         ST = S[:, -1]
         ST_M = np.max(ST, axis=1)
         prix = (K-ST_M).clip(0) * np.exp(-r*T)
@@ -184,19 +191,19 @@ def test_gs():
     S0 = np.array([100, 100])
     r = .02
     X0 = np.array([[.04, .02], [.02, .04]])
-    alpha = 1.05
+    alpha = 4.5
     a = np.eye(2) * 0.2
     b = np.eye(2) * 0.5
     T = 1
     K = 120
-    num = 500
+    num = 50000
     # lst_N = np.array([1, 2, 4, 8, 10, 20, 25])
     lst_N = np.array([1, 2, 4, 8, 10, 20])
     # lst_N = np.array([1, 10, 100])
 
     model = GS_model(S0, r, X0, alpha, a=a, b=b)
     lst_prix_exact = np.zeros_like(lst_N, dtype=float)
-    lst_prix_2 = np.zeros_like(lst_N, dtype=float) 
+    lst_prix_2 = np.zeros_like(lst_N, dtype=float)
     lst_prix_3 = np.zeros_like(lst_N, dtype=float)
     lst_prix_e = np.zeros_like(lst_N, dtype=float)
 

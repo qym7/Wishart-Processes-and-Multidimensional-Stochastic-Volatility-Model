@@ -25,9 +25,12 @@ def decompose_cholesky(M):
         q = np.argmax(A_diag) + i
         if diag[q] > 0:
             r += 1
-            p[[i, q], :] = p[[q, i], :]
-            A[[i, q], :] = A[[q, i], :]
-            A[:, [i, q]] = A[:, [q, i]]
+            # p[[i, q], :] = p[[q, i], :]
+            # A[[i, q], :] = A[[q, i], :]
+            # A[:, [i, q]] = A[:, [q, i]]
+            p[i, q] = p[q, i]
+            A[i, q] = A[q, i]
+            A[i, q] = A[q, i]
             A[i, i] = np.sqrt(A[i, i])
             A[i+1:n, i] = A[i+1:n, i]/A[i,i]
             for j in range(i+1,n):
@@ -59,9 +62,8 @@ def cholesky(M):
     else:
         lst_c = np.array(lst_c).reshape(shape)
         return lst_c
-        
 
-def is_sdp(M):
+def is_sdp(M, debug=False):
     '''
     :param M: a matrix
     :return:
@@ -73,6 +75,8 @@ def is_sdp(M):
     b[:r, :r] = c
     b[r:, :r] = k
     err = p.T.dot(b.dot(b.T)).dot(p) - M
+    if debug:
+        return err
     return np.isclose(err, 0).all()
 
 def diag(M):
