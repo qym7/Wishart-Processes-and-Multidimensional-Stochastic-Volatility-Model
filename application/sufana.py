@@ -17,15 +17,15 @@ class GS_model:
     dX_t = (\alpha a^Ta + bX_t + X_tb^T)dt + (\sqrt(X_t)dW_ta + a^TdW_t^T\sqrt(X_t))
     '''
     def __init__(self, S0, r, X0, alpha, a, b):
-       '''
-       * Params:
+        '''
+        * Params:
            S0 : d-dim vector, the initial assert value.
            r : real num, the interest rate.
            X0 : semi-pos-def d-dim matrix, the initial vol.
            alpha : real num > d-1.
            a : d-dim matrix.
            b : d-dim matrix.
-       ''' 
+        ''' 
         self.S0 = S0
         self.r = r
         self.d = len(S0)
@@ -59,7 +59,7 @@ class GS_model:
                 s0 = S[:, i-1].reshape(num, self.d) # Of shape (num, d).
                 x = X[:, i-1] # Of shape(num, d, d).
                 diag_x = np.diagonal(x, axis1=1, axis2=2) # Take the diagonals of x.
-                tmp_1 = (r - diag_x/2) * h # Of shape (num, d).
+                tmp_1 = (self.r - diag_x/2) * h # Of shape (num, d).
                 std = sqrt_h * wishart.decompose_cholesky(x)
                 tmp_2 = np.matmul(std, G[:,i-1]) # Of shape (num, d, 1).
                 tmp_2 = tmp_2.reshape(num, self.d) 

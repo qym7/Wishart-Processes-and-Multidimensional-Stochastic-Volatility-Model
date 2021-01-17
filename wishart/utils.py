@@ -51,9 +51,8 @@ def is_sdp(M):
     b = np.zeros(M.shape)
     b[:r, :r] = c
     b[r:, :r] = k
-    if not (p.T.dot(b.dot(b.T)).dot(p) - M == 0).all():
-        is_pos = False
-    return is_pos
+    err = p.T.dot(b.dot(b.T)).dot(p) - M
+    return np.isclose(err, 0).all()
 
 def diag(M):
     '''

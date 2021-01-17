@@ -13,8 +13,7 @@ class Wishart():
         :param a:
         '''
         self.x = x
-        if not utils.is_sdp(x):
-            print("Error, X given is not semi positive definite")
+        assert utils.is_sdp(x)
         self.c, self.k, self.p, self.r = utils.decompose_cholesky(self.x[1:, 1:])
 
         self.d = x.shape[0]
@@ -33,8 +32,7 @@ class Wishart():
 
     def __call__(self, T, x=None, N=1, num=1, method="exact", **kwargs):
         if x is not None:
-            if not utils.is_sdp(x):
-                raise ("Error, X given is not semi positive definite.")
+            assert utils.is_sdp(x)
 
         if method == "euler":
             return self.euler(T=T, x=x, N=N, num=num, **kwargs)
