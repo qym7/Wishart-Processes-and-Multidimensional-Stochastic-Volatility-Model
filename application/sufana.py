@@ -60,7 +60,7 @@ class GS_model:
                 x = X[:, i-1] # Of shape(num, d, d).
                 diag_x = np.diagonal(x, axis1=1, axis2=2) # Take the diagonals of x.
                 tmp_1 = (self.r - diag_x/2) * h # Of shape (num, d).
-                std = sqrt_h * wishart.decompose_cholesky(x)
+                std = sqrt_h * wishart.cholesky(x)
                 tmp_2 = np.matmul(std, G[:,i-1]) # Of shape (num, d, 1).
                 tmp_2 = tmp_2.reshape(num, self.d) 
                 s1 = s0 * np.exp(tmp_1 + tmp_2) # Of shape (num, d).
@@ -69,7 +69,7 @@ class GS_model:
             for i in range(1, N+1):
                 s0 = S[:, i-1].reshape(num, self.d, 1)
                 x = X[:, i-1] # Of shape (num, d, d).
-                std = sqrt_h * wishart.decompose_cholesky(x)
+                std = sqrt_h * wishart.cholesky(x)
                 # \sqrt(X_t)dB_t
                 tmp = np.matmul(std, G[:, i-1]) # Of shape (num, d, 1).
                 tmp = 1 + self.r * h + tmp

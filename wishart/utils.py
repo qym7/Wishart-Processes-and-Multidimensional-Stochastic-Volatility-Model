@@ -15,7 +15,7 @@ def decompose_cholesky(M):
         * r: range of matrix M
     '''
     r = 0
-    A = np.array(M).copy()
+    A = np.array(M, dtype=float)
     assert len(A.shape)==2 and A.shape[0]==A.shape[1]
     n = A.shape[0]
     p = np.eye(n)
@@ -39,6 +39,27 @@ def decompose_cholesky(M):
 
     p = np.array(p, dtype=int)
     return c, k, p, r
+
+def cholesky(M):
+    M = np.array(M, dtype=float)
+    shape = M.shape
+    assert shape[-1] == shape[-2]
+    d = shape[-1]
+    M_ = M.reshape(-1, d, d)
+    lst_c = []
+    for m in M_:
+        c, k, p ,r = decompose_cholesky(m)
+        p = np.array(p, dtype=float)
+        b = np.zeros(M.shape, dtype=float)
+        b[:r, :r] = c
+        b[r:, :r] = k
+        lst_c.append(np.matmul(p.T, b))
+    if len(shape)==2:
+        return lst_c[0]
+    else:
+        lst_c = np.arange(lst_c).reshape(shape)
+        return lst_c
+        
 
 def is_sdp(M):
     '''
