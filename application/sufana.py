@@ -39,7 +39,7 @@ class GS_model:
         h = T/N
         sqrt_h = np.sqrt(h)
         X = self.w_gen(num=num, N=N, T=T, trace=True, method=method)
-        S = self.gen_S(h, X, method=method)
+        S = self.gen_S(h, X, method='exact')
             
         if ret_vol:
             return S, X
