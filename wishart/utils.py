@@ -40,6 +40,21 @@ def decompose_cholesky(M):
     p = np.array(p, dtype=int)
     return c, k, p, r
 
+def is_sdp(M):
+    '''
+    :param M: a matrix
+    :return:
+        * boolean: if M is symetric, semi definite positive
+    '''
+    is_pos = True
+    c, k, p, r = decompose_cholesky(M)
+    b = np.zeros(M.shape)
+    b[:r, :r] = c
+    b[r:, :r] = k
+    if not (p.T.dot(b.dot(b.T)).dot(p) - M == 0).all():
+        is_pos = False
+    return is_pos
+
 def diag(M):
     '''
     :param M: a symmetric matrix

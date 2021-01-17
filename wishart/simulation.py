@@ -12,11 +12,11 @@ class Wishart():
         :param b:
         :param a:
         '''
-        try:
-            np.linalg.cholesky(x)
-        except:
-            raise ("Err, x is not a symetric positive definite matrix.")
         self.x = x
+        if not utils.is_sdp(x):
+            print("Error, X given is not semi positive definite")
+        self.c, self.k, self.p, self.r = utils.decompose_cholesky(self.x[1:, 1:])
+
         self.d = x.shape[0]
         assert alpha >= self.d - 1
         self.alpha = alpha
@@ -30,10 +30,13 @@ class Wishart():
         else:
             assert a.shape[0] == self.d and a.shape[1] == self.d
             self.a = a
-        self.c, self.k, self.p, self.r = utils.decompose_cholesky(self.x[1:, 1:])
 
     def __call__(self, T, x=None, N=1, num=1, method="exact", **kwargs):
-        if method=="euler":
+        if x is not None:
+            if not utils.is_sdp(x):
+                raise ("Error, X given is not semi positive definite.")
+
+        if method == "euler":
             return self.euler(T=T, x=x, N=N, num=num, **kwargs)
         else:
             return self.wishart(T, N=N, x=x, num=num, method=method, **kwargs)
@@ -62,27 +65,6 @@ class Wishart():
         m2[1:r+1, 1:r+1] = np.eye(r)
         
         return np.matmul(m1, np.matmul(m2, m3))
-        
-#         u = np.array(u)
-#         shape_u = u.shape
-#         u = u.reshape(-1, r+1)
-#         lst_hru = []
-#         for i in range(u.shape[0]):
-#             ut = u[i]
-#             m2 = np.zeros((self.d, self.d))
-#             m2[0, 0] = ut[0]+np.sum(ut[1:r + 1] * ut[1:r + 1])
-#             m2[0, 1:r + 1] = ut[1:r + 1]
-#             m2[1:r + 1, 0] = ut[1:r + 1]
-#             m2[1:r+1, 1:r+1] = np.eye(r)
-
-# #             lst_hru.append(m1.dot(m2).dot(m3))
-#             rslt = np.matmul(m1, np.matmul(m2, m3))
-#             lst_hru.append(rslt)
-
-#         if len(shape_u) == 1:
-#             return lst_hru[0]
-#         else:
-#             return np.array(lst_hru)
 
     def wishart_e(self, T, N, num=1, x=None, method="exact"):
         '''
@@ -103,7 +85,6 @@ class Wishart():
         else:
             x = np.array(x)
             assert len(x.shape)==2 and x.shape[0]==self.d and x.shape[1]==self.d
-            np.linalg.cholesky(x)
             c, k, p, r = utils.decompose_cholesky(x[1:, 1:])
             
         pi = np.eye(self.d)
