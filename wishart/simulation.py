@@ -54,18 +54,35 @@ class Wishart():
         m1[r+1:self.d, 1:r+1] = k
         m3 = m1.copy().T
         
-        lst_hru = []
-        for i in range(u.shape[0]):
-            ut = u[i]
-            m2 = np.zeros((self.d, self.d))
-            m2[0, 0] = ut[0]+np.sum(ut[1:r + 1] * ut[1:r + 1])
-            m2[0, 1:r + 1] = ut[1:r + 1]
-            m2[1:r + 1, 0] = ut[1:r + 1]
-            m2[1:r+1, 1:r+1] = np.eye(r)
+        ut = u
+        m2 = np.zeros((self.d, self.d))
+        m2[0, 0] = ut[0] + np.sum(ut[1:r+1] * ut[1:r+1])
+        m2[0, 1:r+1] = ut[1:r+1]
+        m2[1:r+1, 0] = ut[1:r+1]
+        m2[1:r+1, 1:r+1] = np.eye(r)
+        
+        return np.matmul(m1, np.matmul(m2, m3))
+        
+#         u = np.array(u)
+#         shape_u = u.shape
+#         u = u.reshape(-1, r+1)
+#         lst_hru = []
+#         for i in range(u.shape[0]):
+#             ut = u[i]
+#             m2 = np.zeros((self.d, self.d))
+#             m2[0, 0] = ut[0]+np.sum(ut[1:r + 1] * ut[1:r + 1])
+#             m2[0, 1:r + 1] = ut[1:r + 1]
+#             m2[1:r + 1, 0] = ut[1:r + 1]
+#             m2[1:r+1, 1:r+1] = np.eye(r)
 
-            lst_hru.append(m1.dot(m2).dot(m3))
+# #             lst_hru.append(m1.dot(m2).dot(m3))
+#             rslt = np.matmul(m1, np.matmul(m2, m3))
+#             lst_hru.append(rslt)
 
-        return np.array(lst_hru)
+#         if len(shape_u) == 1:
+#             return lst_hru[0]
+#         else:
+#             return np.array(lst_hru)
 
     def wishart_e(self, T, N, num=1, x=None, method="exact"):
         '''
@@ -106,14 +123,42 @@ class Wishart():
             proc_U = np.zeros((N+1, r+1))
             proc_U[:, 0] = u0
             proc_U[:, 1:] = u[1:] + W
-            proc_X = self.hr(u=proc_U, r=r, c=c, k=k)  # Of shape (N+1, d, d)
+#             proc_X = self.hr(u=proc_U, r=r, c=c, k=k)  # Of shape (N+1, d, d)
+            proc_X = [self.hr(u=u, r=r, c=c, k=k) for u in proc_U]
             proc_X = [pi.T.dot(Xt).dot(pi) for Xt in proc_X]
             lst_proc_X.append(np.array(proc_X))
 
         return np.array(lst_proc_X)
+    
+    def step_wishart_e(self, h, x, method='exact'):
+        x = np.array(x)
+        assert len(x.shape)==2 and x.shape[0]==self.d and x.shape[1]==self.d
+#         np.linalg.cholesky(x)
+        c, k, p, r = utils.decompose_cholesky(x[1:, 1:])
+        pi = np.eye(self.d)
+        pi[1:, 1:] = p
+        xp = np.matmul(pi, np.matmul(x, pi.T))
+        u = np.zeros(r+1)
+        u[1:] = np.linalg.inv(c).dot(xp[0, 1:r+1])
+        u[0] = xp[0, 0] - (u[1:]*u[1:]).sum()
+        if not u[0]>=0:
+            if np.isclose(u[0], 0):
+                u[0] = 0
+            else:
+                print(f'Err! u[0]={u[0]}.')
+        
+        cir_u0 = CIR(k=0, a=self.alpha-r, sigma=2, x0=u[0])  # The CIR generator.
+        
+        u0 = cir_u0(T=h, n=1, num=1, method=method)[0, -1]
+        U = np.zeros(r+1)
+        U[0] = u0
+        U[1:] = u[1:] + np.sqrt(h) * np.random.normal(size=r)
+        Xt = self.hr(u=U, r=r, c=c, k=k)
+        Xt = np.matmul(pi.T, np.matmul(Xt, pi))
+        return Xt
 
 
-    def wishart_i(self, T, n, N=100, num=1, x=None, method="exact"):
+    def wishart_i(self, T, n, N=1, num=1, x=None, method="exact"):
         '''
         :param T: Non-negative real number.
         :param n: Positive integer. The n of I_d^n.
@@ -126,23 +171,42 @@ class Wishart():
 #         y = x.copy()
         y = np.zeros((num, self.d, self.d))
         y[:] = x
-        I = np.eye(self.d)
-        I[n:, n:] = np.zeros((self.d-n, self.d-n))
 
         for k in range(n):
             p = np.eye(self.d)
             p[0, 0] = p[k, k] = 0
             p[k, 0] = p[0, k] = 1
             if k == 0:
-#                 Y = self.wishart_e(T, N=N, num=num, x=y, method=method)[:, -1]
-                Y = np.array([self.wishart_e(T, N=N, x=y[i], method=method)[0, -1] for i in range(num)])
+                Y = np.array([self.step_wishart_e(h=T, x=y[i], method=method) for i in range(num)])
                 y = Y
             else:
                 y = np.matmul(p, np.matmul(y, p))
-                Y = np.array([self.wishart_e(T, N=N, x=y[i], method=method)[0, -1] for i in range(num)])
+                Y = np.array([self.step_wishart_e(h=T, x=y[i], method=method) for i in range(num)])
                 y = np.matmul(p, np.matmul(Y, p))
 
         return y
+    
+    def step_wishart_i(self, h, n, x, num=1, method='exact'):
+        x = np.array(x)
+#         assert len(x.shape)==2 and x.shape[0]==self.d and x.shape[1]==self.d
+        y = np.zeros((num, self.d, self.d))
+        y[:] = x
+        
+        for k in range(n):
+            if k == 0:
+                Y = np.array([self.step_wishart_e(h=h, x=y[i], method=method) for i in range(num)])
+                y = Y
+            else:
+                p = np.eye(self.d)
+                p[0, 0] = p[k, k] = 0
+                p[k, 0] = p[0, k] = 1
+                y = np.matmul(p, np.matmul(y, p))
+                Y = np.array([self.step_wishart_e(h=h, x=y[i], method=method) for i in range(num)])
+                y = np.matmul(p, np.matmul(Y, p))
+
+        return y
+            
+        
 
     def wishart(self, T, x=None, N=1, num=1, method="exact", **kwargs):
         '''
@@ -172,23 +236,22 @@ class Wishart():
         theta = np.eye(self.d)
         theta[:n, :n] = c
         theta[n:, :n] = k
-        theta = np.linalg.inv(p).dot(theta)
+#         theta = np.linalg.inv(p).dot(theta)
+        theta = np.matmul(np.linalg.inv(p), theta)
         m = scipy.linalg.expm(b*h)
         theta_inv = np.linalg.inv(theta)
         tmp_fac = np.matmul(theta_inv, m)
+        
         
         X_proc = np.zeros((num, N+1, self.d, self.d))
         X_proc[:, 0] = x
         for i in range(1, N+1):
             x = X_proc[:, i-1]
             x_tmp = np.matmul(tmp_fac, np.matmul(x, tmp_fac.T))
-            Y = self.wishart_i(T=h, n=n, N=1, num=num, x=x_tmp, method=method)
+#             Y = self.wishart_i(T=h, n=n, N=1, num=num, x=x_tmp, method=method)
+            Y = self.step_wishart_i(h=h, n=n, x=x_tmp, num=num, method=method)
             X = np.matmul(theta, np.matmul(Y, theta.T))
             X_proc[:, i] = X
-        
-#         x_tmp = theta_inv.dot(m).dot(x).dot(m.T).dot(theta_inv.T)
-#         Y = self.wishart_i(T=T, n=n, N=N, num=num, x=x_tmp, method=method)
-#         X = np.array([theta.dot(Y[i]).dot(theta.T) for i in range(num)])
         
         if 'trace' in kwargs and kwargs['trace']:
             return X_proc

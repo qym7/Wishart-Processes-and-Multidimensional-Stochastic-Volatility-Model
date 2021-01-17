@@ -1,5 +1,7 @@
 import numpy as np
 import scipy.linalg
+import sys 
+sys.path.append('..')
 import sampling
 
 def decompose_cholesky(M):
@@ -35,6 +37,7 @@ def decompose_cholesky(M):
     c = A[:r, :r]
     k = A[r:, :r]
 
+    p = np.array(p, dtype=int)
     return c, k, p, r
 
 def diag(M):
