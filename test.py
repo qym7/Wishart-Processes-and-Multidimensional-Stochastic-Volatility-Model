@@ -7,21 +7,21 @@ def test_cir_characteristic():
     from tqdm.notebook import tqdm
 
     import cir
-    
+
     k = 0.1
     a = 0.04
     sigma = 2
     T = 1
-    x0 =  0.3
+    x0 = 0.3
     num = 100000
-    print(f'sigma^2 <= 4a is {sigma*sigma <= 4*a}.')
+    print(f'sigma^2 <= 4a is {sigma * sigma <= 4 * a}.')
 
     cir_gen = cir.CIR(k, a, sigma, x0=x0)
     cir_gen.character(T=T, v=-1)
     lst_n = np.array([1, 2, 4, 8, 10, 15, 20])
 
-    xT_exact = cir_gen(T=T, n=1, num=num)[:, -1] # The exact generated XT.
-    char_exact = np.mean(np.exp(-1*xT_exact))
+    xT_exact = cir_gen(T=T, n=1, num=num)[:, -1]  # The exact generated XT.
+    char_exact = np.mean(np.exp(-1 * xT_exact))
     char_real = cir_gen.character(T=T, v=-1)
 
     char_2_n = np.zeros(len(lst_n))
@@ -29,28 +29,26 @@ def test_cir_characteristic():
     char_ext_n = np.zeros(len(lst_n))
     for i in range(len(lst_n)):
         xT_2 = cir_gen(T=T, n=lst_n[i], num=num, method='2')[:, -1]
-        char_2 = np.mean(np.exp(-1*xT_2))
+        char_2 = np.mean(np.exp(-1 * xT_2))
         del xT_2
         xT_3 = cir_gen(T=T, n=lst_n[i], num=num, method='3')[:, -1]
-        char_3 = np.mean(np.exp(-1*xT_3))
+        char_3 = np.mean(np.exp(-1 * xT_3))
         del xT_3
         xT_ext = cir_gen(T=T, n=lst_n[i], num=num, method='exact')[:, -1]
-        char_ext = np.mean(np.exp(-1*xT_ext))
+        char_ext = np.mean(np.exp(-1 * xT_ext))
         del xT_ext
 
         char_2_n[i] = char_2
         char_3_n[i] = char_3
         char_ext_n[i] = char_ext
     plt.axhline(y=char_real, color='r', label='real')
-    plt.plot(1/lst_n, char_2_n, color='b', label='2')
-    plt.plot(1/lst_n, char_3_n, color='orange', label='3')
-    plt.plot(1/lst_n, char_ext_n, color='g', label='exact_n')
+    plt.plot(np.log(1 / lst_n), char_2_n, color='b', label='2')
+    plt.plot(np.log(1 / lst_n), char_3_n, color='orange', label='3')
+    plt.plot(np.log(1 / lst_n), char_ext_n, color='g', label='exact_n')
     # plt.plot(lst_n, char_3_n_d, color='y', label='3, original')
-    plt.xlabel("1/n")
+    plt.xlabel("log(1/n)")
     plt.legend()
     plt.show()
-
-
 
 
 def test_wishart_processus():

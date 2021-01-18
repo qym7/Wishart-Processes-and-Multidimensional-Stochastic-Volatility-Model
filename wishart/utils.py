@@ -4,6 +4,7 @@ import sys
 sys.path.append('..')
 import sampling
 
+
 def decompose_cholesky(M):
     '''
     :param M: a symmetric positive semi-definite matrix
@@ -43,6 +44,7 @@ def decompose_cholesky(M):
     p = np.array(p, dtype=int)
     return c, k, p, r
 
+
 def cholesky(M):
     M = np.array(M, dtype=float)
     shape = M.shape
@@ -63,6 +65,7 @@ def cholesky(M):
         lst_c = np.array(lst_c).reshape(shape)
         return lst_c
 
+
 def is_sdp(M, debug=False):
     '''
     :param M: a matrix
@@ -79,6 +82,7 @@ def is_sdp(M, debug=False):
         return err
     return np.isclose(err, 0).all()
 
+
 def diag(M):
     '''
     :param M: a symmetric matrix
@@ -90,6 +94,7 @@ def diag(M):
     D = np.diag(D)
 
     return D, V
+
 
 def exp(M):
     '''
@@ -126,6 +131,7 @@ def brownian(N, M, T, method="exact"):
     W = np.cumsum(np.sqrt(dT)*Z, axis=1)
     
     return W
+
 
 def integrate(T, b, a, d, num_int=200):
     assert b.shape == (d, d) and a.shape == (d, d)

@@ -4,6 +4,7 @@ import scipy.linalg
 from wishart import utils
 from cir import CIR
 
+
 class Wishart():
     def __init__(self, x, alpha, a=None, b=None):
         '''
@@ -220,8 +221,7 @@ class Wishart():
         m = scipy.linalg.expm(b*h)
         theta_inv = np.linalg.inv(theta)
         tmp_fac = np.matmul(theta_inv, m)
-        
-        
+
         X_proc = np.zeros((num, N+1, self.d, self.d))
         X_proc[:, 0] = x
         for i in range(1, N+1):

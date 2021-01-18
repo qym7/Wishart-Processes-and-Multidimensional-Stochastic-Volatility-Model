@@ -33,11 +33,10 @@ class GS_model:
         self.w_gen = wishart.Wishart(X0, alpha, b=b, a=a)
         
     def __call__(self, num, N, T, ret_vol=False, method='exact'):
-        return self.gen(num, N, T, ret_vol, method)
+        return self.gen(num, N, T, ret_vol, method=method)
     
     def gen(self, num, N, T, ret_vol, method):
         h = T/N
-        sqrt_h = np.sqrt(h)
         X = self.w_gen(num=num, N=N, T=T, trace=True, method=method)
         S = self.gen_S(h, X, method='exact')
             
