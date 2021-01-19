@@ -64,54 +64,34 @@ class Wishart():
         
         return np.matmul(m1, np.matmul(m2, m3))
 
-    def wishart_e(self, T, N, num=1, x=None, method="exact"):
+    def wishart_e(self, T, N, num=1, x=None, method="exact", **kwargs):
         '''
         :param T: Non-negative real number.
         :param N: Positive integer. The number of discrete time points.
-        :param x: Pos-def matrix. The initial value. If x is None, self.x is used.
-        :Param W: np.array of shape (r, N+1).
+        :param x: (d, d) or (num, d, d). The initial value(s). If x is None, self.x is used.
         :return: an np.array of shape (num, N+1, self.d, self.d).
         '''
         assert T >= 0 and N > 0
-        # Check x.
         if x is None:
             x = self.x
-            p = self.p
-            c = self.c
-            k = self.k
-            r = self.r
-        else:
-            x = np.array(x)
-            assert len(x.shape)==2 and x.shape[0]==self.d and x.shape[1]==self.d
-            c, k, p, r = utils.decompose_cholesky(x[1:, 1:])
-            
-        pi = np.eye(self.d)
-        pi[1:, 1:] = p
-        xp = pi.dot(x).dot(pi.T)
-        u = np.zeros(r+1)
-        u[1:] = np.linalg.inv(c).dot(xp[0, 1:r+1])
-        u[0] = xp[0, 0] - (u[1:]*u[1:]).sum()
-        cir_u0 = CIR(k=0, a=self.alpha-r, sigma=2, x0=u[0])  # The CIR generator.
+        assert x.shape == (num, self.d, self.d) or x.shape == (self.d, self.d)
+        h = T/N
         
-        lst_proc_X = []
-
-        for i in range(num):
-            W = utils.brownian(N=N, M=r, T=T, method=method)  # Of shape (r, N+1).
-            W = W.T # of shape (N+1, r).
-            u0 = cir_u0(T=T, n=N, num=1, method=method)[0]  # Of shape (N+1,)
-            proc_U = np.zeros((N+1, r+1))
-            proc_U[:, 0] = u0
-            proc_U[:, 1:] = u[1:] + W
-#             proc_X = self.hr(u=proc_U, r=r, c=c, k=k)  # Of shape (N+1, d, d)
-            proc_X = [self.hr(u=u, r=r, c=c, k=k) for u in proc_U]
-            proc_X = [pi.T.dot(Xt).dot(pi) for Xt in proc_X]
-            lst_proc_X.append(np.array(proc_X))
-
-        return np.array(lst_proc_X)
+        X_proc = np.zeros((num, N+1, self.d, self.d))
+        X_proc[:, 0] = x
+        for i in range(1, N+1):
+            for n in range(num):
+                X_proc[n, i] = self.step_wishart_e(h, x=X_proc[n, i-1], method=method)
+        
+        if 'trace' in kwargs and kwargs['trace']:
+            return X_proc
+        else:
+            return X_proc[:, -1]
+        
     
     def step_wishart_e(self, h, x, method='exact'):
-        x = np.array(x)
-        assert len(x.shape)==2 and x.shape[0]==self.d and x.shape[1]==self.d
+#         x = np.array(x)
+#         assert len(x.shape)==2 and x.shape[0]==self.d and x.shape[1]==self.d
 #         np.linalg.cholesky(x)
         c, k, p, r = utils.decompose_cholesky(x[1:, 1:])
         pi = np.eye(self.d)
@@ -137,36 +117,34 @@ class Wishart():
         return Xt
 
 
-    def wishart_i(self, T, n, N=1, num=1, x=None, method="exact"):
+    def wishart_i(self, T, n, N=1, num=1, x=None, method="exact", **kwargs):
         '''
         :param T: Non-negative real number.
         :param n: Positive integer. The n of I_d^n.
-        :param num: Positive integer. The number of discrete time points.
+        :param N: Positive integer. The number of discrete time points.
         :param x: Pos-def matrix. The initial value. If x is None, self.x is used.
         :return: an np.array of shape (num, self.d, self.d).
         '''
+        assert T >= 0 and N > 0
         if x is None:
             x = self.x
-#         y = x.copy()
-        y = np.zeros((num, self.d, self.d))
-        y[:] = x
-
-        for k in range(n):
-            p = np.eye(self.d)
-            p[0, 0] = p[k, k] = 0
-            p[k, 0] = p[0, k] = 1
-            if k == 0:
-                Y = np.array([self.step_wishart_e(h=T, x=y[i], method=method) for i in range(num)])
-                y = Y
-            else:
-                y = np.matmul(p, np.matmul(y, p))
-                Y = np.array([self.step_wishart_e(h=T, x=y[i], method=method) for i in range(num)])
-                y = np.matmul(p, np.matmul(Y, p))
-
-        return y
+        assert x.shape == (num, self.d, self.d) or x.shape == (self.d, self.d)
+        h = T/N
+        
+        X_proc = np.zeros((num, N+1, self.d, self.d))
+        X_proc[:, 0] = x
+        for i in range(1, N+1):
+            X_proc[:, i] = self.step_wishart_i(h, n, x=X_proc[:, i-1], num=num, method=method)
+        
+        if 'trace' in kwargs and kwargs['trace']:
+            return X_proc
+        else:
+            return X_proc[:, -1]
+            
     
     def step_wishart_i(self, h, n, x, num=1, method='exact'):
         x = np.array(x)
+        assert x.shape == (self.d, self.d) or x.shape==(num, self.d, self.d)
 #         assert len(x.shape)==2 and x.shape[0]==self.d and x.shape[1]==self.d
         y = np.zeros((num, self.d, self.d))
         y[:] = x
@@ -182,7 +160,10 @@ class Wishart():
                 y = np.matmul(p, np.matmul(y, p))
                 Y = np.array([self.step_wishart_e(h=h, x=y[i], method=method) for i in range(num)])
                 y = np.matmul(p, np.matmul(Y, p))
-
+        
+        if num==1:
+            y = y.reshape(x.shape)
+            
         return y
             
         
