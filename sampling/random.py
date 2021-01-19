@@ -110,6 +110,7 @@ def chi_2(p, q, lam=0.0, size=None):
     lst_X = np.array(lst_X).reshape(size)
     return lst_X
 
+
 def bounded_gauss(size=1, order=2):
     '''
     Function used to generate the required size of indep instances of Y,
@@ -136,3 +137,12 @@ def bounded_gauss(size=1, order=2):
         raise ('Err, order shall be 2 or 3.')
     
     return Y
+
+def gauss(size=1, method='exact'):
+    if method == 'exact':
+        return np.random.normal(size=size)
+    elif method == '2' or method == 2:
+        return bounded_gauss(size=size, order=2)
+    elif method == '3' or method == 3:
+        return bounded_gauss(size=size, order=3)
+        

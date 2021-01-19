@@ -3,7 +3,7 @@ import scipy.linalg
 
 from wishart import utils
 from cir import CIR
-
+import sampling
 
 class Wishart():
     def __init__(self, x, alpha, a=None, b=None):
@@ -112,7 +112,8 @@ class Wishart():
         u0 = cir_u0(T=h, n=1, num=1, method=method)[0, -1]
         U = np.zeros(r+1)
         U[0] = u0
-        U[1:] = u[1:] + np.sqrt(h) * np.random.normal(size=r)
+#         U[1:] = u[1:] + np.sqrt(h) * np.random.normal(size=r)
+        U[1:] = u[1:] + np.sqrt(h) * sampling.random.gauss(size=r, method=method)
         Xt = self.hr(u=U, r=r, c=c, k=k)
         Xt = np.matmul(pi.T, np.matmul(Xt, pi))
         return Xt
@@ -191,7 +192,8 @@ class Wishart():
         h = T/N
         # Here we shall find a method to calculate q.
         qh = utils.integrate(h, b, a, self.d, num_int=num_int)
-        # Calculate p, cn, kn, 
+        # Calculate cholesky decomposition of qh/h and a^Ta.
+        theta = utils.cholesky(qh/h)
         c, k, p, n = utils.decompose_cholesky(qh/h)
         # Build theta_t.
         theta = np.eye(self.d)
@@ -202,7 +204,8 @@ class Wishart():
         m = scipy.linalg.expm(b*h)
         theta_inv = np.linalg.inv(theta)
         tmp_fac = np.matmul(theta_inv, m)
-
+        
+        
         X_proc = np.zeros((num, N+1, self.d, self.d))
         X_proc[:, 0] = x
         for i in range(1, N+1):
