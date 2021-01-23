@@ -41,7 +41,7 @@ class CIR:
         self.x0 = x0
         self.nu = 4*a / self.sigmasqr
         
-    def __call__(self, T, n, num=1, x0=None, method="exact"):
+    def __call__(self, T, n, num=1, x0=None, method="exact", **kwargs):
         '''
         Function used to generate the discretized CIR process.
         * Params:

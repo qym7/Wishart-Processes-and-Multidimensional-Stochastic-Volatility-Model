@@ -91,6 +91,7 @@ class Wishart():
         
     
     def step_wishart_e(self, h, x, method='exact'):
+        x = np.array(x, dtype=np.float64)
 #         x = np.array(x)
 #         assert len(x.shape)==2 and x.shape[0]==self.d and x.shape[1]==self.d
 #         np.linalg.cholesky(x)
@@ -98,14 +99,17 @@ class Wishart():
         pi = np.eye(self.d)
         pi[1:, 1:] = p
         xp = np.matmul(pi, np.matmul(x, pi.T))
-        u = np.zeros(r+1)
+        u = np.zeros(r+1, dtype=np.float64)
         u[1:] = np.linalg.inv(c).dot(xp[0, 1:r+1])
         u[0] = xp[0, 0] - (u[1:]*u[1:]).sum()
         if not u[0]>=0:
             if np.isclose(u[0], 0):
                 u[0] = 0
             else:
-                print(f'Err! u[0]={u[0]}.')
+                print(f'Err! u={u}.')
+                print('x', x)
+                print('xp', xp)
+                print('inv_c', np.linalg.inv(c))
         
         cir_u0 = CIR(k=0, a=self.alpha-r, sigma=2, x0=u[0])  # The CIR generator.
         
@@ -206,7 +210,7 @@ class Wishart():
         tmp_fac = np.matmul(theta_inv, m)
         
         
-        X_proc = np.zeros((num, N+1, self.d, self.d))
+        X_proc = np.zeros((num, N+1, self.d, self.d), dtype=np.float64)
         X_proc[:, 0] = x
         for i in range(1, N+1):
             x = X_proc[:, i-1]
