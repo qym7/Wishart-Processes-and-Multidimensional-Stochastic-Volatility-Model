@@ -16,7 +16,7 @@ def decompose_cholesky(M):
         * r: range of matrix M
     '''
     r = 0
-    A = np.array(M, dtype=np.float64)
+    A = np.array(M.copy(), dtype=np.float64)
     assert len(A.shape)==2 and A.shape[0]==A.shape[1]
     n = A.shape[0]
     p = np.eye(n)

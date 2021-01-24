@@ -32,12 +32,12 @@ class GS_model:
         assert X0.shape == (self.d, self.d)
         self.w_gen = wishart.Wishart(X0, alpha, b=b, a=a)
         
-    def __call__(self, num, N, T, ret_vol=False, method='exact'):
-        return self.gen(num, N, T, ret_vol, method=method)
+    def __call__(self, num, N, T, ret_vol=False, method='exact', **kwargs):
+        return self.gen(num, N, T, ret_vol, method=method, **kwargs)
     
-    def gen(self, num, N, T, ret_vol, method):
+    def gen(self, num, N, T, ret_vol, method, **kwargs):
         h = T/N
-        X = self.w_gen(num=num, N=N, T=T, trace=True, method=method)
+        X = self.w_gen(num=num, N=N, T=T, trace=True, method=method, **kwargs)
         S = self.gen_S(h, X, method='exact')
             
         if ret_vol:

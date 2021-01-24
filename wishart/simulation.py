@@ -91,6 +91,7 @@ class Wishart():
         
     
     def step_wishart_e(self, h, x, method='exact'):
+        x_old = x.copy()
         x = np.array(x, dtype=np.float64)
 #         x = np.array(x)
 #         assert len(x.shape)==2 and x.shape[0]==self.d and x.shape[1]==self.d
@@ -106,10 +107,15 @@ class Wishart():
             if np.isclose(u[0], 0):
                 u[0] = 0
             else:
-                print(f'Err! u={u}.')
-                print('x', x)
-                print('xp', xp)
-                print('inv_c', np.linalg.inv(c))
+                print(f'Err! u={u}, {u.dtype}.')
+                print('x', x, x.dtype)
+                print('x_old', x_old, x_old.dtype)
+                print('xp', xp, xp.dtype)
+                print('c', c, c.dtype)
+                print('inv_c', np.linalg.inv(c), np.linalg.inv(c).dtype)
+                c_old, k_old, p_old, r_old = utils.decompose_cholesky(x_old[1:, 1:])
+                print('inv_old_c', c_old, c_old.dtype)
+                print(utils.is_sdp(x[1:, 1:]))
         
         cir_u0 = CIR(k=0, a=self.alpha-r, sigma=2, x0=u[0])  # The CIR generator.
         
