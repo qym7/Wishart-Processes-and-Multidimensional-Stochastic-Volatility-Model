@@ -64,6 +64,7 @@ class GS_model:
                 tmp_2 = tmp_2.reshape(num, self.d) 
                 s1 = s0 * np.exp(tmp_1 + tmp_2)  # Of shape (num, d).
                 S[:, i] = s1
+
         elif method == 2 or method == '2':
             for i in range(1, N+1):
                 s0 = S[:, i-1].reshape(num, self.d, 1)
