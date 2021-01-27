@@ -197,7 +197,7 @@ def test_gs():
     from application import GS_model
 
     def price_mc(model, num, r, T, K, N, method):
-        S, X = model(num=num, N=N, T=T, ret_vol=True, method=method, is_processus=False, num_int=5000)
+        S, X = model(num=num, N=N, T=T, ret_vol=True, method=method, num_int=5000)
         ST = S[:, -1]
         ST_M = np.max(ST, axis=1)
         prix = (K-ST_M).clip(0) * np.exp(-r*T)
