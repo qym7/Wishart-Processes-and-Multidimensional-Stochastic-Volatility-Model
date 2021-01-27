@@ -197,7 +197,7 @@ def test_gs():
     from application import GS_model
 
     def price_mc(model, num, r, T, K, N, method):
-        S, X = model(num=num, N=N, T=T, ret_vol=True, method=method, num_int=5000)
+        S, X = model(num=num, N=N, T=T, ret_vol=True, method=method, is_processus=False, num_int=5000)
         ST = S[:, -1]
         ST_M = np.max(ST, axis=1)
         prix = (K-ST_M).clip(0) * np.exp(-r*T)
@@ -216,43 +216,29 @@ def test_gs():
     T = 1
     K = 120
     num = 100000
-    # lst_N = np.array([1, 2, 4, 8, 10, 20, 25])
     lst_N = np.array([1, 2, 4, 8, 16, 32, 48, 64])
-    # lst_N = np.array([1, 10, 100])
 
     model = GS_model(S0, r, X0, alpha, a=a, b=b)
-    lst_prix_exact = np.zeros_like(lst_N, dtype=float)
     lst_prix_2 = np.zeros_like(lst_N, dtype=float)
-    lst_prix_3 = np.zeros_like(lst_N, dtype=float)
     lst_prix_e = np.zeros_like(lst_N, dtype=float)
 
     it_lst = tqdm(range(len(lst_N)))
     cf_2 = np.zeros((len(lst_N), 2))
-    cf_3 = np.zeros((len(lst_N), 2))
-    cf_ext = np.zeros((len(lst_N), 2))
     cf_euler = np.zeros((len(lst_N), 2))
 
     for i in it_lst:
         N = lst_N[i]
-        it_lst.set_postfix({'calculating': 'exact...'})
-        prix, cf_ext[i] = price_mc(model, num=num, T=T, K=K, N=N, r=r, method='exact')
-        lst_prix_exact[i] = prix
         it_lst.set_postfix({'calculating': 'scheme 2...'})
         prix, cf_2[i] = price_mc(model, num=num, T=T, K=K, N=N, r=r, method='2')
         lst_prix_2[i] = prix
-        it_lst.set_postfix({'calculating': 'scheme 3...'})
-        prix, cf_3[i] = price_mc(model, num=num, T=T, K=K, N=N, r=r, method='3')
-        lst_prix_3[i] = prix
         it_lst.set_postfix({'calculating': 'scheme euler...'})
         prix, cf_euler[i] = price_mc(model, num=num, T=T, K=K, N=N, r=r, method='euler')
         lst_prix_e[i] = prix
 
     plt.plot(np.log(1/lst_N), lst_prix_2, color='b', label='2')
-    plt.plot(np.log(1/lst_N), lst_prix_3, color='orange', label='3')
-    plt.plot(np.log(1/lst_N), lst_prix_exact, color='g', label='exact')
     plt.fill_between(np.log(1 / lst_N), cf_2[:, 0], cf_2[:, 1], color='b', alpha=0.2)
-    plt.fill_between(np.log(1 / lst_N), cf_3[:, 0], cf_3[:, 1], color='orange', alpha=0.2)
-    plt.fill_between(np.log(1 / lst_N), cf_ext[:, 0], cf_ext[:, 1], color='g', alpha=0.2)
+    plt.plot(np.log(1/lst_N), lst_prix_e, color='g', label='euler')
+    plt.fill_between(np.log(1 / lst_N), cf_euler[:, 0], cf_euler[:, 1], color='g', alpha=0.2)
     # plt.plot(lst_N, lst_prix_e, label='euler')
     plt.xlabel('log(1/N)')
     plt.title('Convergence of Sufana model simulation')

@@ -32,40 +32,42 @@ class GS_model:
         assert X0.shape == (self.d, self.d)
         self.w_gen = wishart.Wishart(X0, alpha, b=b, a=a)
         
-    def __call__(self, num, N, T, ret_vol=False, method='exact', **kwargs):
-        return self.gen(num, N, T, ret_vol, method=method, **kwargs)
+    def __call__(self, num, N, T, ret_vol=False, method='2', is_processus=True, **kwargs):
+        return self.gen(num, N, T, ret_vol, method=method, is_processus=is_processus, **kwargs)
     
-    def gen(self, num, N, T, ret_vol, method, **kwargs):
-        h = T/N
-        X = self.w_gen(num=num, N=N, T=T, trace=True, method=method, **kwargs)
-        S = self.gen_S(h, X, method='exact')
+    def gen(self, num, N, T, ret_vol, method, is_processus, **kwargs):
+        X = self.w_gen(num=num, N=N, T=T, trace=True, method='2', **kwargs)
+        S = self.gen_S(N, T, X, method=method, is_processus=is_processus)
             
         if ret_vol:
             return S, X
         else:
             return S
-        
-    def gen_S(self, h, X, method='exact'):
+
+    def gen_S(self, N, T, X, method='2', is_processus=True):
         num = X.shape[0]
-        N = X.shape[1]-1
+        h = T/N
         sqrt_h = np.sqrt(h)
         S = np.zeros((num, N+1, self.d))
         S[:, 0] = self.S0
         G = np.random.normal(size=(num, N, self.d, 1))
         
-        if method == 'exact':  # St_l = S0_l*exp[(r-x_ll/2)t+(\sqrt(X)B_t)_l].
-            for i in range(1, N+1):
-                s0 = S[:, i-1].reshape(num, self.d)  # Of shape (num, d).
-                x = X[:, i-1]  # Of shape(num, d, d).
-                diag_x = np.diagonal(x, axis1=1, axis2=2)  # Take the diagonals of x.
-                tmp_1 = (self.r - diag_x/2) * h  # Of shape (num, d).
-                std = sqrt_h * wishart.cholesky(x)
-                tmp_2 = np.matmul(std, G[:, i-1])  # Of shape (num, d, 1).
-                tmp_2 = tmp_2.reshape(num, self.d) 
-                s1 = s0 * np.exp(tmp_1 + tmp_2)  # Of shape (num, d).
-                S[:, i] = s1
+        if method == '2':  # St_l = S0_l*exp[(r-x_ll/2)t+(\sqrt(X)B_t)_l].
+            if is_processus:
+                for i in range(1, N+1):
+                    s0 = S[:, i-1].reshape(num, self.d)  # Of shape (num, d).
+                    x = X[:, i-1]  # Of shape(num, d, d).
+                    diag_x = np.diagonal(x, axis1=1, axis2=2)  # Take the diagonals of x.
+                    tmp_1 = (self.r - diag_x/2) * h  # Of shape (num, d).
+                    std = sqrt_h * wishart.cholesky(x)
+                    tmp_2 = np.matmul(std, G[:, i-1])  # Of shape (num, d, 1).
+                    tmp_2 = tmp_2.reshape(num, self.d)
+                    s1 = s0 * np.exp(tmp_1 + tmp_2)  # Of shape (num, d).
+                    S[:, i] = s1
+            else:
+                S = self.gen_S(1, T, X, method='2', is_processus=True)
 
-        elif method == 2 or method == '2':
+        elif method == '4' or method == 'euler':
             for i in range(1, N+1):
                 s0 = S[:, i-1].reshape(num, self.d, 1)
                 x = X[:, i-1]  # Of shape (num, d, d).
