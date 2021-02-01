@@ -88,14 +88,9 @@ class Wishart():
             return X_proc
         else:
             return X_proc[:, -1]
-        
-    
+
     def step_wishart_e(self, h, x, method='exact'):
-        x_old = x.copy()
         x = np.array(x, dtype=np.float64)
-#         x = np.array(x)
-#         assert len(x.shape)==2 and x.shape[0]==self.d and x.shape[1]==self.d
-#         np.linalg.cholesky(x)
         c, k, p, r = utils.decompose_cholesky(x[1:, 1:])
         pi = np.eye(self.d)
         pi[1:, 1:] = p
@@ -103,31 +98,21 @@ class Wishart():
         u = np.zeros(r+1, dtype=np.float64)
         u[1:] = np.linalg.inv(c).dot(xp[0, 1:r+1])
         u[0] = xp[0, 0] - (u[1:]*u[1:]).sum()
-        if not u[0]>=0:
+        if not u[0] >= 0:
             if np.isclose(u[0], 0):
                 u[0] = 0
             else:
                 print(f'Err! u={u}, {u.dtype}.')
-                print('x', x, x.dtype)
-                print('x_old', x_old, x_old.dtype)
-                print('xp', xp, xp.dtype)
-                print('c', c, c.dtype)
-                print('inv_c', np.linalg.inv(c), np.linalg.inv(c).dtype)
-                c_old, k_old, p_old, r_old = utils.decompose_cholesky(x_old[1:, 1:])
-                print('inv_old_c', c_old, c_old.dtype)
-                print(utils.is_sdp(x[1:, 1:]))
         
         cir_u0 = CIR(k=0, a=self.alpha-r, sigma=2, x0=u[0])  # The CIR generator.
         
         u0 = cir_u0(T=h, n=1, num=1, method=method)[0, -1]
         U = np.zeros(r+1)
         U[0] = u0
-#         U[1:] = u[1:] + np.sqrt(h) * np.random.normal(size=r)
         U[1:] = u[1:] + np.sqrt(h) * sampling.random.gauss(size=r, method=method)
         Xt = self.hr(u=U, r=r, c=c, k=k)
         Xt = np.matmul(pi.T, np.matmul(Xt, pi))
         return Xt
-
 
     def wishart_i(self, T, n, N=1, num=1, x=None, method="exact", **kwargs):
         '''
@@ -152,12 +137,10 @@ class Wishart():
             return X_proc
         else:
             return X_proc[:, -1]
-            
-    
+
     def step_wishart_i(self, h, n, x, num=1, method='exact'):
         x = np.array(x)
         assert x.shape == (self.d, self.d) or x.shape==(num, self.d, self.d)
-#         assert len(x.shape)==2 and x.shape[0]==self.d and x.shape[1]==self.d
         y = np.zeros((num, self.d, self.d))
         y[:] = x
         
@@ -177,8 +160,6 @@ class Wishart():
             y = y.reshape(x.shape)
             
         return y
-            
-        
 
     def wishart(self, T, x=None, N=1, num=1, method="exact", **kwargs):
         '''
@@ -197,7 +178,7 @@ class Wishart():
         if 'num_int' in kwargs:
             num_int = kwargs['num_int']
         else:
-            num_int = 200
+            num_int = 1000
         
         h = T/N
         # Here we shall find a method to calculate q.
@@ -209,19 +190,16 @@ class Wishart():
         theta = np.eye(self.d)
         theta[:n, :n] = c
         theta[n:, :n] = k
-#         theta = np.linalg.inv(p).dot(theta)
         theta = np.matmul(np.linalg.inv(p), theta)
         m = scipy.linalg.expm(b*h)
         theta_inv = np.linalg.inv(theta)
         tmp_fac = np.matmul(theta_inv, m)
-        
-        
+
         X_proc = np.zeros((num, N+1, self.d, self.d), dtype=np.float64)
         X_proc[:, 0] = x
         for i in range(1, N+1):
             x = X_proc[:, i-1]
             x_tmp = np.matmul(tmp_fac, np.matmul(x, tmp_fac.T))
-#             Y = self.wishart_i(T=h, n=n, N=1, num=num, x=x_tmp, method=method)
             Y = self.step_wishart_i(h=h, n=n, x=x_tmp, num=num, method=method)
             X = np.matmul(theta, np.matmul(Y, theta.T))
             X_proc[:, i] = X
@@ -270,7 +248,7 @@ class Wishart():
         else:
             return X[:, -1]
         
-    def character(self, T, v, x=None, num_int=200):
+    def character(self, T, v, x=None, num_int=1000):
         '''
         Function used to calculate E[exp(Tr(vX_T))].
         * Params:
