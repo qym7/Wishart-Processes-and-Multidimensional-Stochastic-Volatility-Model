@@ -215,8 +215,8 @@ def test_gs():
     b = np.eye(2) * 0.5
     T = 1
     K = 120
-    num = 10000
-    lst_N = np.array([1, 2, 4, 8, 16, 32])
+    num = 100000
+    lst_N = np.array([1, 2, 4, 8, 16, 32, 64])
 
     model = GS_model(S0, r, X0, alpha, a=a, b=b)
     lst_prix_2 = np.zeros_like(lst_N, dtype=float)

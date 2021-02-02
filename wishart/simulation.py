@@ -182,7 +182,10 @@ class Wishart():
         
         h = T/N
         # Here we shall find a method to calculate q.
-        qh = utils.integrate(h, b, a, self.d, num_int=num_int)
+        if 'qh' in kwargs:
+            qh = kwargs['qh']
+        else:
+            qh = utils.integrate(h, b, a, self.d, num_int=num_int)
         # Calculate cholesky decomposition of qh/h and a^Ta.
         theta = utils.cholesky(qh/h)
         c, k, p, n = utils.decompose_cholesky(qh/h)

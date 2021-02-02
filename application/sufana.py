@@ -3,11 +3,9 @@ Implementation of the Gourieroux-Sufana model
 """
 
 import numpy as np
-import scipy.stats as stats
-import scipy.linalg
 
-import cir
 import wishart
+from wishart import utils
 
 
 class GS_model:
@@ -18,7 +16,7 @@ class GS_model:
     dX_t = (\alpha a^Ta + bX_t + X_tb^T)dt + (\sqrt(X_t)dW_ta + a^TdW_t^T\sqrt(X_t))
     """
     def __init__(self, S0, r, X0, alpha, a, b):
-        '''
+        """
         * Params:
            S0 : d-dim vector, the initial assert value.
            r : real num, the interest rate.
@@ -26,29 +24,30 @@ class GS_model:
            alpha : real num > d-1.
            a : d-dim matrix.
            b : d-dim matrix.
-        '''
+        """
         self.S0 = S0
         self.r = r
         self.d = len(S0)
         assert X0.shape == (self.d, self.d)
         self.w_gen = wishart.Wishart(X0, alpha, b=b, a=a)
         
-    def __call__(self, num, N, T, ret_vol=False, method='2', **kwargs):
+    def __call__(self, num, N, T, ret_vol=False, method='2', num_int=2000, **kwargs):
         if method == '2':
-            return self.gen(num=num, N=N, T=T, ret_vol=ret_vol, **kwargs)
+            return self.gen(num=num, N=N, T=T, ret_vol=ret_vol, num_int=num_int, **kwargs)
         elif method == 'euler' or method == '4':
             return self.euler(num, N, T, ret_vol, **kwargs)
     
-    def gen(self, num, N, T, ret_vol, **kwargs):
+    def gen(self, num, N, T, ret_vol, num_int, **kwargs):
         S = np.zeros((num, N, self.d))
         X = np.zeros((num, N, self.d, self.d))
         h = T/N
+        qh = utils.integrate(h, self.w_gen.b, self.w_gen.a, self.d, num_int=num_int)
 
         x = np.expand_dims(self.w_gen.x, axis=0)
         s = self.S0
         for i in range(N):
             s = self.step_S(num=num, h=h/2, x=x, S0=s)
-            x = self.step_W(num=num, h=h, x=x, method='2', **kwargs)
+            x = self.step_W(num=num, h=h, x=x, qh=qh, method='exact', **kwargs)
             s = self.step_S(num=num, h=h/2, x=x, S0=s)
             S[:, i] = s
             X[:, i] = x
