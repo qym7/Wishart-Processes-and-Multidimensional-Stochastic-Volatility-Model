@@ -142,3 +142,12 @@ def integrate(T, b, a, d, num_int=200):
 
     return np.sum(dqt, axis=0) * dt
 
+def brownian(T, dimension, n_steps=1, square=False):
+    if square:
+        W = np.zeros((n_steps + 1, dimension, dimension))
+        W[1:] = np.random.randn((n_steps, dimension, dimension))*np.sqrt(T/n_steps)
+    else:
+        W = np.zeros((n_steps + 1, dimension))w
+        W[1:] = np.random.randn((n_steps, dimension)) * np.sqrt(T / n_steps)
+
+    return W.cumsum(axis=0)
