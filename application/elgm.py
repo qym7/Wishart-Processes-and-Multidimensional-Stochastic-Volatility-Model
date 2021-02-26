@@ -57,6 +57,17 @@ class ELGM:
             return xt, yt
         return yt
 
+    def step_L_c(self, x, y, t, keep_x=True):
+        xt = x.copy()
+        yt = y.copy()
+        order = get_order(self.n)
+        for q in order:
+            xt, yt = self.step_L_c_q(x, y, t, q, keep_x=True)
+
+        if keep_x:
+            return xt, yt
+        return yt
+
     def step_L_bar_q(self, u, y, w, t, q):
         assert len(w) == self.d
         ind = np.zeros((self.d, self.d))
@@ -69,8 +80,18 @@ class ELGM:
 
         return ut, yt
 
-    def step_L_bar(self, x, y, t, n, q, keep_x=True):
-        pass
+    def step_L_bar(self, x, y, t, keep_x=True):
+        ut = utils.decompose_cholesky(x)[0]
+        yt = y.copy()
+        w = utils.brownian_squrare(t, self.d, n_steps=1)[-1]
+        order = get_order(self.n)
+        for q in order:
+            ut, yt = self.step_L_bar_q(ut, yt, w[:q], t, q)
+        xt = ut.T.dot(ut)
+
+        if keep_x:
+            return xt, yt
+        return yt
 
 
 def ex(x, t, b):
@@ -83,4 +104,14 @@ def integrate(alpha, T, b, num_int=200):
 
     return dqt.cumsum()
     
-    
+def get_order(n):
+    binomial = np.random.binomial(size=n, n=1, p=.5)
+    order = []
+    for q in range(n):
+        if binomial[q]:
+            order = order + [q]
+        else:
+            order = [q] + order
+
+    return order
+
