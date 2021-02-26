@@ -24,6 +24,7 @@ class ELGM:
         self.epsilon = epsilon
         self.alpha = alpha
         self.b = b
+        assert rho[n:].all() == 0
         self.n = n
         a = np.zeros(d)
         a[:n] = 1
@@ -31,9 +32,8 @@ class ELGM:
         
         # Justify whether alpha - dI_n^d is semi-pos-def.
         tar_mat = self.alpha - d * self.a
-        W, V = np.linalg.eig(tar_mat) # Calculate the eig valus.
+        W, V = np.linalg.eig(tar_mat) # Calculate the eig values.
         self.faster = (W >= 0).all()
-
 
     def step_L_1(self, x, t, num_int=200):
         return ex(x, t, self.b) + integrate(self.alpha, t, self.b, num_int)
@@ -45,7 +45,7 @@ class ELGM:
         eqd = np.zeros((self.d, self.d))
         eqd[q-1, q-1] = 1
         x_generator = Wishart(x, self.d-1, 0, eqd)
-        xt = x_generator(T=t*self.epsilon*self.epsilon, x=x, N=1, num=1, method="exact")
+        xt = x_generator(T=t*self.epsilon*self.epsilon, x=x, N=1, num=1, method="exact")[0]
         yt = np.zeros(self.d)
         for i in range(self.d):
             if i != q:
@@ -57,31 +57,20 @@ class ELGM:
             return xt, yt
         return yt
 
-    def step_L_bar_q(self, u, y, t, n, q):
-        c = utils.decompose_cholesky(x)
-        w = utils.brownian(T=t, dimension=self.d, n_steps=1, square=True)[-1][:,q]
+    def step_L_bar_q(self, u, y, w, t, q):
         assert len(w) == self.d
         ind = np.zeros((self.d, self.d))
-        for i in range(n):
+        for i in range(self.n):
             ind[i,i] = 1
-        ut = u
-        ut[q] += self.epsilon*w.dot(ind)
-        yt = y + self.rho[q]*w.dot(c)
+        ut = u.copy()
+        ut[:, q] += self.epsilon*w
+        yt = y + self.rho[q]*w.dot(u)
         yt[q] += self.epsilon*self.rho[q]/2*((w*w-t).sum())
 
         return ut, yt
 
     def step_L_bar(self, x, y, t, n, q, keep_x=True):
-        c = utils.decompose_cholesky(x)
-        yt = y.copy()
-        ut = c
-        for q in range(self.d):
-            ut, yt = self.step_L_bar_q(ut, yt, t, n, q)
-
-        xt = ut.T.dot(ut)
-        if keep_x:
-            return xt, yt
-        return yt
+        pass
 
 
 def ex(x, t, b):
