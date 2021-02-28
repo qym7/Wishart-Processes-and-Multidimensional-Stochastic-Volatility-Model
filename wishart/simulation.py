@@ -5,7 +5,73 @@ from wishart import utils
 from cir import CIR
 import sampling
 
-class Wishart():
+class Wishart_e:
+    '''
+    A smplified version of wishart, of which we consider only 
+    WIS(x, alpha, b=0, a=e_d^q).
+   '''
+    def __init__(self, alpha, d):
+        self.d = d
+        self.alpha = alpha
+    
+    def step(self, x, q, dt):
+        x = np.array(x)
+        assert q <= self.d
+#         assert x.shape == (self.d, self.d) or x.shape==(num, self.d, self.d)
+        # Permutation.
+        xp = x
+        if not q == 0:
+            mat_p = np.eye(self.d)
+            mat_p[0, 0] = mat_p[q, q] = 0
+            mat_p[p, 0] = mat_p[0, p] = 1
+            xp = np.matmul(mat_p, np.matmul(x, mat_p))
+        # wishart e
+        c, k, p, r = utils.decompose_cholesky(xp[1:, 1:])
+        # Construct decomposition.
+        pi = np.eye(self.d)
+        pi[1:, 1:] = p
+        xp_tld = np.matmul(pi, np.matmul(xp, pi.T)) # \pi Xp \pi^T.
+        u = np.zeros(r+1, dtype=np.float64)
+        u[1:] = np.linalg.inv(c).dot(xp_tld[0, 1:r+1])
+        u[0] = xp_tld[0, 0] - (u[1:]*u[1:]).sum()
+        cir_u0 = CIR(k=0, a=self.apha-r, sigma=2., x0=u[0])
+        u0 = cir_u0(T=dt, n=1, num=1, method='exact')[0, -1]
+        U = np.zeros(r+1)
+        U[0] = u0
+        U[1:] = u[1:] = np.sqrt(dt) * sampling.random.guass(size=r, method='exact')
+        Xt = self.hr(u=U, r=r, c=c, k=k)
+        Xt = np.matmul(pi.T, np.matmul(Xt, pi))
+        # Permutation.
+        if not q == 0:
+            Xt = np.matmul(mat_p, np.matmul(Xt, mat_p))
+        
+        return Xt
+
+        
+    def hr(self, u, r, c, k):
+        '''
+            * param 
+                u: an np.array of shape (N+1, r+1)
+            * return: an np.array of shape (N+1, self.d, self.d)
+        '''
+        m1 = np.eye(self.d)
+        m1[1:r+1, 1:r+1] = c
+        m1[r+1:self.d, 1:r+1] = k
+        m3 = m1.copy().T
+        
+        ut = u
+        m2 = np.zeros((self.d, self.d))
+        m2[0, 0] = ut[0] + np.sum(ut[1:r+1] * ut[1:r+1])
+        m2[0, 1:r+1] = ut[1:r+1]
+        m2[1:r+1, 0] = ut[1:r+1]
+        m2[1:r+1, 1:r+1] = np.eye(r)
+        
+        return np.matmul(m1, np.matmul(m2, m3))
+            
+        
+        
+
+class Wishart:
     def __init__(self, x, alpha, a=None, b=None):
         '''
         :param x: np.array of shape (d, d). The initial state of the process.
