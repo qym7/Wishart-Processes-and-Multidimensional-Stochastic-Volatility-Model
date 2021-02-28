@@ -7,7 +7,7 @@ import sampling
 
 class Wishart_e:
     '''
-    A smplified version of wishart, of which we consider only 
+    A light-weighted version of wishart, of which we consider only 
     WIS(x, alpha, b=0, a=e_d^q).
    '''
     def __init__(self, alpha, d):
