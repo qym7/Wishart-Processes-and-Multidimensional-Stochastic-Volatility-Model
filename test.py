@@ -311,8 +311,41 @@ def test_wishart_e():
 
 
 def test_elgm():
-    pass
+    import numpy as np
+    from application import ELGM
+    from tqdm import tqdm
+    import matplotlib.pyplot as plt
+    import scipy.stats as st
 
+    p = d = 3
+    num = 1000
+    T = 5
+    x = 0.4 * np.eye(d)
+    y = 0.2 * np.ones(d)
+    omiga = 2.5 * np.ones(d)
+    c = np.eye(d)
+    rho = np.zeros(d)
+    b = np.zeros((d,d))
+    Gamma = 0.05*np.eye(d)
+    Lambda = 0.02*np.ones(d)
+    alpha = (2.5 + (d+1) * 1) * np.eye(d)
+
+    lst_N = np.array([1,2,4,8,16])
+    methods = ["1", "2"]
+
+    gen = ELGM(rho=rho, alpha=alpha, b=b, n=d)
+    results = {"1":[],"2":[]}
+
+    for N in lst_N:
+        for comb in methods:
+            xt, yt = gen.gen(x=x, y=y, T=T, N=N, num=num, comb=comb, trace=False)
+            char = gen.character(Gamma, Lambda, xt, yt)
+            results[comb].append(np.real(char))
+            print(char)
+
+    plt.plot(results["1"], label="1")
+    plt.plot(results["2"], label="2")
+    plt.legend()
 
 def test_euler_fonseca():
     pass

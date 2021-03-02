@@ -4,7 +4,7 @@ import numpy as np
 from wishart import utils
 from wishart import Wishart_e
 import cir
-from elgm import ELGM
+from application.elgm import ELGM
 
 class Fonseca_model:
     '''
@@ -89,14 +89,13 @@ class Fonseca_model:
             Xt, Yt = self.step_L_tilde(x=Xt, y=Yt, dt=dt, comb=comb)
             Xt, Yt = self.step_L_1(x=Xt, y=Yt, dt=dt/2, dBt = dBt[1])
             return Xt, Yt
-                
     
     def step_L_1(self, x, y, dt, dBt=None):
         '''
         dYt = (r = diag(x)/2)dt + \bar{\rho}\sqrt(x)dBt.
         '''
         if dBt is None:
-            dBt = np.random.norml(size=(self.d)) * np.sqrt(dt)
+            dBt = np.random.normal(size=(self.d)) * np.sqrt(dt)
         c = utils.cholesky(x)
         Yt = (self.r - np.diag(x)/2)*dt + self.bar_rho * (c @ dBt)
         Xt = x
@@ -106,7 +105,7 @@ class Fonseca_model:
         r = np.matmul(self.inv_u.T, y)
         v = np.matmul(self.inv_u.T, np.matmul(x, self.inv_u))
         
-        Vt, Rt = self.elgm_gen.step(x=r, v=y, dt=dt, comb=comb)
+        Vt, Rt = self.elgm_gen.step(x=r, y=v, dt=dt, comb=comb)
         Yt = np.matmul(self.u.T, Rt)
         Xt = np.matmul(self.u.T, np.matmul(Vt, self.u))
         return Xt, Yt
