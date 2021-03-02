@@ -98,8 +98,6 @@ class Wishart_e:
         return np.matmul(m1, np.matmul(m2, m3))
 
 
-
-
 class Wishart:
     def __init__(self, x, alpha, a=None, b=None):
         '''
