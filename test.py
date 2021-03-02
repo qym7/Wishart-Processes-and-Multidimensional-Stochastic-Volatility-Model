@@ -128,7 +128,6 @@ def test_wishart_characteristic():
             return np.array(lst_char)
 
     T = 10
-
     x = 0.4 * np.eye(3)
     a = np.eye(3)
     b = np.zeros((3, 3))
@@ -244,3 +243,80 @@ def test_gs():
     plt.title('Convergence of Sufana model simulation')
     plt.legend()
     plt.show()
+
+
+def test_wishart_e():
+    """
+    Test if wishart e has the same result with wishart
+    Code: no bug
+    Test: not pass
+    """
+    import numpy as np
+    from wishart import Wishart, Wishart_e
+    from tqdm import tqdm
+    import matplotlib.pyplot as plt
+    import scipy.stats as st
+
+    T = 10
+    x = 0.4 * np.eye(3)
+    a = np.zeros((3, 3))
+    q = 0
+    a[q, q] = 1
+    b = np.zeros(x.shape)
+    alpha = 4.5
+    num = 10000
+    lst_N = np.array([1, 2, 4, 8, 16])
+    v = np.eye(3) * 0.05 * 1j
+
+    def char_MC_N(gen, gen_e, T, v, x=None, lst_N=[1], num=500, method='exact', **kwargs):
+        lst_char = []
+        lst_char_e = []
+
+        for i, N in enumerate(tqdm(lst_N)):
+            # XT = gen(T=T, N=N, num=num, x=x, method=method, num_int=5000, **kwargs) # of shape (num, d, d).
+            XT = gen.wishart_e(T=T, N=N, num=num, x=x, method=method, num_int=5000, **kwargs)
+            tmp = np.matmul(v, XT)
+            exp_trace = np.exp(np.trace(tmp, axis1=1, axis2=2))
+            char = np.mean(exp_trace)
+            lst_char.append(char)
+
+            XT = np.zeros((num, x.shape[0], x.shape[0]))
+            dt = T / N
+            for i in range(num):
+                xt = x.copy()
+                for n in range(N):
+                    xt = gen_e.step(x=xt, q=q, dt=dt)
+                XT[i] = xt
+            tmp = np.matmul(v, XT)
+            exp_trace = np.exp(np.trace(tmp, axis1=1, axis2=2))
+            lst_char_e.append(np.mean(exp_trace))
+
+        return np.array(lst_char), np.array(lst_char_e)
+
+    lst_v = np.array([v])
+    w_gen = Wishart(x, alpha, b=b, a=a)
+    gen_e = Wishart_e(alpha, d=x.shape[0])
+    char_true = w_gen.character(T=T, v=lst_v, num_int=5000)[0]
+    print(f'True value is {char_true}.')
+    print('Calculating exact...')
+    char_exact_N, char_exact_e = char_MC_N(w_gen, gen_e, T=T, v=v, x=x, lst_N=lst_N, num=num, method='exact')
+    plt.axhline(y=np.real(char_true), color='r', label='True value')
+    plt.plot(np.log(1/lst_N), np.real(char_exact_N), label='exact', color='g', alpha=.8)
+    plt.plot(np.log(1 / lst_N), np.real(char_exact_e), label='exact e', color='b', alpha=.8)
+    plt.legend()
+    plt.xlabel('log(1/N)')
+    plt.title('Comparison of 2 wishart simulations')
+    # plt.savefig('./wishart_cov.png')
+    plt.show()
+
+
+def test_elgm():
+    pass
+
+
+def test_euler_fonseca():
+    pass
+
+
+def test_fonseca():
+    pass

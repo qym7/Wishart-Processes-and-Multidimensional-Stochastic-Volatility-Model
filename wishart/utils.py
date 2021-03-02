@@ -26,12 +26,9 @@ def decompose_cholesky(M):
         q = np.argmax(A_diag) + i
         if diag[q] > 0:
             r += 1
-            # p[[i, q], :] = p[[q, i], :]
-            # A[[i, q], :] = A[[q, i], :]
-            # A[:, [i, q]] = A[:, [q, i]]
-            p[i, q] = p[q, i]
-            A[i, q] = A[q, i]
-            A[i, q] = A[q, i]
+            p[[i, q], :] = p[[q, i], :]
+            A[[i, q], :] = A[[q, i], :]
+            A[:, [i, q]] = A[:, [q, i]]
             A[i, i] = np.sqrt(A[i, i])
             A[i+1:n, i] = A[i+1:n, i]/A[i,i]
             for j in range(i+1,n):

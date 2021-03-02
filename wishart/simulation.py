@@ -17,13 +17,12 @@ class Wishart_e:
     def step(self, x, q, dt):
         x = np.array(x)
         assert q <= self.d
-#         assert x.shape == (self.d, self.d) or x.shape==(num, self.d, self.d)
         # Permutation.
-        xp = x
+        xp = x.copy()
+        mat_p = np.eye(self.d)
         if not q == 0:
-            mat_p = np.eye(self.d)
             mat_p[0, 0] = mat_p[q, q] = 0
-            mat_p[p, 0] = mat_p[0, p] = 1
+            mat_p[q, 0] = mat_p[0, q] = 1
             xp = np.matmul(mat_p, np.matmul(x, mat_p))
         # wishart e
         c, k, p, r = utils.decompose_cholesky(xp[1:, 1:])
@@ -34,11 +33,11 @@ class Wishart_e:
         u = np.zeros(r+1, dtype=np.float64)
         u[1:] = np.linalg.inv(c).dot(xp_tld[0, 1:r+1])
         u[0] = xp_tld[0, 0] - (u[1:]*u[1:]).sum()
-        cir_u0 = CIR(k=0, a=self.apha-r, sigma=2., x0=u[0])
+        cir_u0 = CIR(k=0, a=self.alpha-r, sigma=2., x0=u[0])
         u0 = cir_u0(T=dt, n=1, num=1, method='exact')[0, -1]
         U = np.zeros(r+1)
         U[0] = u0
-        U[1:] = u[1:] = np.sqrt(dt) * sampling.random.guass(size=r, method='exact')
+        U[1:] = u[1:] = np.sqrt(dt) * sampling.random.gauss(size=r, method='exact')
         Xt = self.hr(u=U, r=r, c=c, k=k)
         Xt = np.matmul(pi.T, np.matmul(Xt, pi))
         # Permutation.
@@ -46,6 +45,30 @@ class Wishart_e:
             Xt = np.matmul(mat_p, np.matmul(Xt, mat_p))
         
         return Xt
+
+    def character(self, T, v, x=None, num_int=1000):
+        '''
+        Function used to calculate E[exp(Tr(vX_T))].
+        * Params:
+            v : A sequence of matrices, of shape (num, d, d).
+        * Return:
+            char : A sequence of chars, of shape (num, )
+        '''
+        if x is None:
+            x = self.x
+        qt = utils.integrate(T, self.b, self.a, d=self.d, num_int=num_int)
+        mt = scipy.linalg.expm(T * self.b)
+        qtv = np.matmul(qt, v)  # Of shape (num, d, d).
+        Idqtv = (np.eye(self.d) - 2 * qtv)
+        tmp = np.linalg.inv(Idqtv)
+        tmp = np.matmul(v, tmp)
+        tmp = np.matmul(tmp, mt.dot(x).dot(mt.T))
+        nom = np.exp(np.trace(tmp, axis1=1, axis2=2))  # of shape (num, )
+
+        det = np.linalg.det(Idqtv)
+        den = np.power(det, self.alpha / 2)
+
+        return nom / den
 
         
     def hr(self, u, r, c, k):
@@ -67,9 +90,9 @@ class Wishart_e:
         m2[1:r+1, 1:r+1] = np.eye(r)
         
         return np.matmul(m1, np.matmul(m2, m3))
-            
-        
-        
+
+
+
 
 class Wishart:
     def __init__(self, x, alpha, a=None, b=None):
@@ -143,7 +166,6 @@ class Wishart:
             x = self.x
         assert x.shape == (num, self.d, self.d) or x.shape == (self.d, self.d)
         h = T/N
-        
         X_proc = np.zeros((num, N+1, self.d, self.d))
         X_proc[:, 0] = x
         for i in range(1, N+1):
