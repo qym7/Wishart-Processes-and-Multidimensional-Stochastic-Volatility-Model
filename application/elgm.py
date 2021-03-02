@@ -199,7 +199,7 @@ class ELGM:
         Xt = self.x_gen.step(x=x, q=q, dt=epsilon_sqr*dt) # Generate Xt.
         dXt = Xt - x # Calculate dXt.
         Yt = y + rho_q / self.epsilon * dXt[q] # Calculate Yt.
-        Yt[q] = y + rho_q / (2*self.epsilon) * (dXt[q, q] - epsilon_sqr * (d-1)*dt)
+        Yt[q] = y + rho_q / (2*self.epsilon) * (dXt[q, q] - epsilon_sqr * (self.d-1)*dt)
         return Xt, Yt
 
     def step_L_bar_q(self, u, y, dt, dWt, q):
@@ -269,6 +269,9 @@ class ELGM:
         tmp_etb = scipy.linalg.expm(t*b)
         tmp_int_etb = intgrl_etb(T=t, alpha=alpha, b=b, num_int=num_int)[-1]
         self.tmp_intgrl = [t, tmp_etb, tmp_int_etb]
+
+    def character(self, Gamma, Lambda, Xt, Yt):
+        return (np.exp(-1j*(np.trace(np.matmul(Gamma,Xt), axis1=1, axis2=2)+np.matmul(Yt,Lambda)))).mean()
         
 def intgrl_etb(T, alpha, b, num_int=200):
     d = b.shape[0]
