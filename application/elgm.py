@@ -52,21 +52,7 @@ class ELGM:
         dt = T/N
         lst_t = np.arange(N+1) * dt
         
-        # Calculate and store L1.
-        if self.faster:
-            alpha = self.alpha - self.a
-        else:
-            alpha = self.alpha
-        if comb=='r' or comb=='2' or comb==2:
-            t = dt
-        elif comb=='1' or comb==1:
-            t = dt/2
-        if 'num_int' in kwargs:
-            num_int = kwargs['num_int']
-        else:
-            num_int = 200
-        self.cal_tmp(t=t, alpha=alpha, b=b, num_int=num_int)
-        
+        self.pre_gen(T=T, N=N, num=num, comb=comb, **kwargs)
         # check dWt or Wt.
 #         if 'dWt' in kwargs:
 #             dWt = kwargs['dWt']
@@ -95,6 +81,32 @@ class ELGM:
             return lst_trace_Xt[:, -1], lst_trace_Yt[:, -1]
         else:
             return lst_trace_xt, lst_trace_Yt
+        
+        
+    def pre_gen(self, T, N=1, comb='r', **kwargs):
+        '''
+        Pre process for generating. The function determines the alpha and b matrices
+        used in the L1 generator, and calculate and store the tmp values.
+        This function can be called individually apart from the function `gen`.
+        '''
+        dt = T/N
+        lst_t = np.arange(N+1) * dt
+        
+        # Calculate and store L1.
+        if self.faster:
+            alpha = self.alpha - self.a
+        else:
+            alpha = self.alpha
+        if comb=='r' or comb=='2' or comb==2:
+            t = dt
+        elif comb=='1' or comb==1:
+            t = dt/2
+        if 'num_int' in kwargs:
+            num_int = kwargs['num_int']
+        else:
+            num_int = 200
+        self.cal_tmp(t=t, alpha=alpha, b=b, num_int=num_int)
+        
     
     def step(self, x, y, dt, dWt=None, comb='r'):
         if self.faster:
@@ -266,8 +278,9 @@ class ELGM:
                 dWt = np.random.normal(size=(2, self.d, self.d)) * np.sqrt(dt/2)
             else:
                 dWt = np.array(dWt)
-                if dWt.shape != (2, self.d, self.d):
+                if dWt.shape != (2, self.d, self.d): # If dWt is of shape (d, d).
                     assert dWt.shape == (self.d, self.d)
+                    # Use the Brownian Bridge.
                     dWt_0 = dWt/2  + np.random.normal(size=(self.d, self.d)) * np.sqrt(dt/4)
                     dWt_1 = dWt - dWt_0
                     dWt = np.array([dWt_0, dWt_1])

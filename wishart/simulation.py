@@ -34,7 +34,12 @@ class Wishart_e:
         u = np.zeros(r+1, dtype=np.float64)
         u[1:] = np.linalg.inv(c).dot(xp_tld[0, 1:r+1])
         u[0] = xp_tld[0, 0] - (u[1:]*u[1:]).sum()
-        cir_u0 = CIR(k=0, a=self.apha-r, sigma=2., x0=u[0])
+        if not u[0] >= 0:
+            if np.isclose(u[0], 0):
+                u[0] = 0
+            else:
+                print(f'Err! u={u}, {u.dtype}.')
+        cir_u0 = CIR(k=0, a=self.alpha-r, sigma=2., x0=u[0])
         u0 = cir_u0(T=dt, n=1, num=1, method='exact')[0, -1]
         U = np.zeros(r+1)
         U[0] = u0
