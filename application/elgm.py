@@ -205,7 +205,7 @@ class ELGM:
     def step_L_bar_q(self, u, y, dt, dWt, q):
         rho_q = self.rho[q]
         # Update Y.
-        Yt = y + rho_q * np.matmul(u.T, dWt)
+        Yt = y + rho_q * np.matmul(u.T, dWt[:, q])
         tmp = np.sum(dWt[:,q] * dWt[:,q] - dt)
         Yt[q] = Yt[q] + self.epsilon * rho_q/2 * tmp
         # Update U.
