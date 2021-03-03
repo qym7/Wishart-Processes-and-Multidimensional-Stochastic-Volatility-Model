@@ -29,7 +29,7 @@ class CIR:
             x0 : Initial value.
         '''
         assert k >= 0
-        assert a > 0
+        assert a >= 0
         assert sigma > 0
         self.k = k
         self.a = a
@@ -81,7 +81,12 @@ class CIR:
             Vt = V[:, i - 1]
             lam_t = Vt * nita
             # Generate the chi-square distribution.
-            Vt1 = np.random.noncentral_chisquare(df=self.nu, nonc=lam_t)
+            if self.nu > 0: # If nu > 0, we sample directly the non-central chi-2.
+                Vt1 = np.random.noncentral_chisquare(df=self.nu, nonc=lam_t)
+            else: # If not , we pick N ~ Poisson(\lambda/2), 
+                  # then Vt1 ~ Chi-2(2*N).
+                tmp_N = np.random.poisson(lam=lam_t/2)
+                Vt1 = np.random.chisquare(df=2*tmp_N)
             Vt1 = Vt1 * factor  # Calculate V_t_{i+1}.
             V[:, i] = Vt1
 

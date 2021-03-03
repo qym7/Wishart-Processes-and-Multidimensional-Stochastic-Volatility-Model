@@ -43,7 +43,7 @@ class Wishart_e:
         u0 = cir_u0(T=dt, n=1, num=1, method='exact')[0, -1]
         U = np.zeros(r+1)
         U[0] = u0
-        U[1:] = u[1:] = np.sqrt(dt) * sampling.random.guass(size=r, method='exact')
+        U[1:] = u[1:] = np.sqrt(dt) * sampling.random.gauss(size=r, method='exact')
         Xt = self.hr(u=U, r=r, c=c, k=k)
         Xt = np.matmul(pi.T, np.matmul(Xt, pi))
         # Permutation.

@@ -62,7 +62,47 @@ class Fonseca_model:
         bu = np.matmul(self.inv_u.T, np.matmul(self.b, self.u.T)) # bu = (u^T)^-1 b u^T
         self.elgm_gen = ELGM(rho=self.rho, alpha=delta, b=bu, n=n)
         
+    
+    def gen(self, x, y, T, N=1, num=1, comb='r', **kwargs):
+        '''
+        This function generates `num` independent samples with end time `T` and
+        separated to `N` pieces.
+        '''
+        assert x.shape == (self.d, self.d)
+        assert y.shape == (self.d,)
+        dt = T/N
+        lst_t = np.arange(N+1) * dt
+        # Initialise the elgm generator.
+        self.elgm_gen.pre_gen(T=T, N=N, num=num, comb=comb, **kwargs)
+        
+        # Generate
+        lst_trace_Xt = np.zeros((num, N+1, self.d, self.d))
+        lst_trace_Yt = np.zeros((num, N+1, self.d))
+        lst_trace_Xt[:, 0] = x
+        lst_trace_Yt[:, 0] = y
+        
+        lst_it = range(num)
+        if 'tqdm' in kwargs:
+            lst_it = kwargs['tqdm'](lst_it)
+            
+        for i in lst_it:
+            for j in range(1, N+1):
+                x = lst_trace_Xt[i, j-1]
+                y = lst_trace_Yt[i, j-1]
+                Xt, Yt = self.step(x=x, y=y, dt=dt, comb=comb)
+                lst_trace_Xt[i, j] = Xt
+                lst_trace_Yt[i, j] = Yt
+        if 'trace' in kwargs and not kwargs['trace']:
+            return lst_trace_Xt[:, -1], lst_trace_Yt[:, -1]
+        else:
+            return lst_trace_Xt, lst_trace_Yt
+        
     def step(self, x, y, dt, dBt=None, comb='r'):
+        '''
+        Remark: Before calling this function, the `self.elgm_gen` must be 
+        initilised by calling its `pre_gen` function. If not, step_L_tilde will
+        definitely fail.
+        '''
         Xt = x
         Yt = y
         if comb=='r' or comb=='2' or comb==2:
