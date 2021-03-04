@@ -106,7 +106,10 @@ class Fonseca_model:
         '''
         Xt = x
         Yt = y
-        if comb=='r' or comb=='2' or comb==2:
+        if comb == 'euler':
+            Xt, Yt = self.step_euler(x=Xt, y=Yt, dt=dt, dBt=dBt)
+            return Xt, Yt
+        elif comb=='r' or comb=='2' or comb==2:
             zeta = np.random.rand()
             if zeta < .5:
                 Xt, Yt = self.step_L_1(x=Xt, y=Yt, dt=dt, dBt=dBt)
@@ -130,7 +133,18 @@ class Fonseca_model:
             Xt, Yt = self.step_L_tilde(x=Xt, y=Yt, dt=dt, comb=comb)
             Xt, Yt = self.step_L_1(x=Xt, y=Yt, dt=dt/2, dBt = dBt[1])
             return Xt, Yt
-    
+
+    def step_euler(self, x, y, dt, dBt=None):
+        if dBt is None:
+            dBt = np.random.normal(size=(self.d)) * np.sqrt(dt)
+        dWt = np.random.normal(size=(self.d)) * np.sqrt(dt)
+
+        sqrt_x = utils.cholesky(x)
+        Yt = y + (self.r - 1/2*np.diag(x))*dt + sqrt_x.dot(self.bar_rho).dot(dBt) + dWt.dot(self.rho)
+        Xt = (self.alpha + self.b.dot(x) + x.dot(self.b))*dt + sqrt_x.dot(dWt).dot(self.a) + self.a.T.dot(dWt.T).dot(sqrt_x)
+
+        return Xt, Yt
+
     def step_L_1(self, x, y, dt, dBt=None):
         '''
         dYt = (r = diag(x)/2)dt + \bar{\rho}\sqrt(x)dBt.
@@ -150,4 +164,7 @@ class Fonseca_model:
         Yt = np.matmul(self.u.T, Rt)
         Xt = np.matmul(self.u.T, np.matmul(Vt, self.u))
         return Xt, Yt
+
+    def character(self, Gamma, Lambda, Xt, Yt):
+        return (np.exp(-1j * (np.trace(np.matmul(Gamma, Xt), axis1=1, axis2=2) + np.matmul(Yt, Lambda)))).mean()
         

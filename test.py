@@ -331,9 +331,8 @@ def test_elgm():
 
     lst_N = np.array([1,2,4,8,16])
     methods = ["1", "2", "euler"]
-
-    gen = ELGM(rho=rho, alpha=alpha, b=b, n=d)
     results = {"1":[],"2":[], "euler":[]}
+    gen = ELGM(rho=rho, alpha=alpha, b=b, n=d)
 
     for N in lst_N:
         for comb in methods:
@@ -348,14 +347,10 @@ def test_elgm():
     plt.legend()
 
 
-def test_fonseca():
+def test_fonseca_convergence():
     import numpy as np
     from application import Fonseca_model
     import matplotlib.pyplot as plt
-    from matplotlib import cm
-
-    # methods = ["1", "2", "euler"]
-    methods = ["1", "2"]
 
     M = np.array([[-2.5, -1.5], [-1.5, -2.5]])
     Q = np.array([[0.21, -0.14], [-0.14, 0.21]])
@@ -367,11 +362,49 @@ def test_fonseca():
     y = np.ones(2)
     num = 10000
     t=1
+
+    Gamma = 0.05*np.eye(2)
+    Lambda = 0.02*np.ones(2)
+    gen = Fonseca_model(r=r, rho=rho, alpha=beta*Q.T.dot(Q), b=M, a=Q)
+    methods = ["1", "2", "euler"]
+    results = {"1":[], "2":[],"euler":[]}
+    lst_N = np.array([1, 2, 4, 8, 16])
+
+    # first asset
+    for i, N in enumerate(lst_N):
+        for j, comb in enumerate(methods):
+            xt, yt = gen.gen(x=x, y=y, T=t, N=N, num=num, comb=comb)
+            char = gen.character(Gamma, Lambda, xt, yt)
+            results[comb].append(np.real(char))
+            print(f"calculated result for N = {N} and comb = {comb} ")
+
+    plt.plot(results["1"], label="1")
+    plt.plot(results["2"], label="2")
+    plt.plot(results["euler"], label="euler")
+    plt.legend()
+
+
+def test_fonseca_smile():
+    import numpy as np
+    from application import Fonseca_model
+    import matplotlib.pyplot as plt
+    from matplotlib import cm
+
+    M = np.array([[-2.5, -1.5], [-1.5, -2.5]])
+    Q = np.array([[0.21, -0.14], [-0.14, 0.21]])
+    beta = 7.14283
+    rho = np.array([-0.6, -0.6])
+    r = 0
+    x = np.array([[0.09,-0.036], [-0.036, 0.09]])
+    y = np.ones(2)
+    num = 10000
+    t=1
     lst_m = np.linspace(0.8, 1.2, 10)
     N = 10
 
     gen = Fonseca_model(r=r, rho=rho, alpha=beta*Q.T.dot(Q), b=M, a=Q)
-    results = {"1":np.zeros((len(lst_m), 5)), "2":np.zeros((len(lst_m), 5)),"euler":np.zeros((len(lst_m), 5))}
+    methods = ["1", "2", "euler"]
+    results = {"1":np.zeros((len(lst_m), N)), "2":np.zeros((len(lst_m), N)),"euler":np.zeros((len(lst_m), N))}
 
     # first asset
     for i, moneyness in enumerate(lst_m):
@@ -379,8 +412,9 @@ def test_fonseca():
             xt, yt = gen.gen(x=x, y=np.log(moneyness)*y, T=t, N=N, num=num, comb=comb, trace=True)
             for k in range(1, N+1):
                 x_cur = xt[:,k,0,0]
-                y_cur = yt[:,k,0]
-                results[comb][i, k-1] = np.corrcoef(np.stack((x_cur,y_cur), axis=0))[1,0]
+                # y_cur = yt[:,k,0]
+                # results[comb][i, k-1] = np.corrcoef(np.stack((x_cur,y_cur), axis=0))[1,0]
+                results[comb][i, k - 1] = np.var(x_cur)
             print(f"methode {comb}, moneyness {moneyness}")
 
     fig = plt.figure()
@@ -393,7 +427,7 @@ def test_fonseca():
     ax.set_xlabel("maturity", color='r')
     ax.set_ylabel("moneyness", color='g')
     ax.set_zlabel("volatility", color='b')
-    ax.set_zlim3d(-0.5, 0.5)
+    ax.set_zlim3d(-0.1, 0.1)
     fig.colorbar(surf, shrink=0.5, aspect=5)
     plt.legend()
     plt.show()
