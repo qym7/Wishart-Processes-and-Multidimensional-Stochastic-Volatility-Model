@@ -46,7 +46,6 @@ class ELGM:
         assert x.shape == (self.d, self.d)
         assert y.shape == (self.d,)
         dt = T/N
-        lst_t = np.arange(N+1) * dt
         self.pre_gen(T=T, N=N, num=num, comb=comb, **kwargs)
         dWt = None
 
@@ -64,7 +63,7 @@ class ELGM:
             return lst_trace_Xt[:, -1], lst_trace_Yt[:, -1]
         else:
             return lst_trace_Xt, lst_trace_Yt
-        
+
     def pre_gen(self, T, N=1, comb='r', **kwargs):
         '''
         Pre process for generating. The function determines the alpha and b matrices
@@ -72,14 +71,13 @@ class ELGM:
         This function can be called individually apart from the function `gen`.
         '''
         dt = T/N
-        lst_t = np.arange(N+1) * dt
         
         # Calculate and store L1.
         if self.faster:
             alpha = self.alpha - self.a
         else:
             alpha = self.alpha
-        if comb=='r' or comb=='2' or comb==2:
+        if comb=='r' or comb=='2' or comb==2 or comb=="euler":
             dt = dt
         elif comb=='1' or comb==1:
             dt = dt/2
@@ -90,13 +88,27 @@ class ELGM:
         self.cal_tmp(t=dt, alpha=alpha, b=self.b, num_int=num_int)
     
     def step(self, x, y, dt, dWt=None, comb='r'):
-        if self.faster:
+        if comb=='euler':
+            Xt, Yt = self.step_euler(x=x, y=y, dt=dt, dWt=dWt)
+        elif self.faster:
             Xt, Yt = self.step_fast(x=x, y=y, dt=dt, dWt=dWt, comb=comb)
         else:
             Xt, Yt = self.step_no_fast(x=x, y=y, dt=dt, comb=comb)
-            
+
         return Xt, Yt
-    
+
+    def step_euler(self, x, y, dt, dWt=None):
+        if dWt is None:
+            dWt = np.random.normal(size=(self.d, self.d)) * np.sqrt(dt)
+        ind = np.eye(self.d)
+        for i in range(self.n,self.d):
+            ind[i,i] = 0
+        sqrt_x = utils.cholesky(x)
+        Xt = x + (self.alpha + self.b.dot(x) + x.dot(self.b.T))*dt + sqrt_x.dot(dWt).dot(ind) + ind.dot(dWt).dot(sqrt_x)
+        Yt = y + utils.cholesky(Xt).dot(dWt).dot(self.rho.reshape(-1,1)).T[0]
+
+        return Xt, Yt
+
     def step_fast(self, x, y, dt, dWt=None, comb='r'):
         if dWt is None:
             dWt = np.random.normal(size=(self.d, self.d)) * np.sqrt(dt)
@@ -135,7 +147,6 @@ class ELGM:
             Xt, Yt = self.step_L_c(x=Xt, y=Yt, dt=dt, comb='1')
             Xt, Yt = self.step_L_1(x=Xt, y=Yt, dt=dt/2)
             return Xt, Yt
-            
 
     def step_L_1(self, x, y, dt):
         '''
