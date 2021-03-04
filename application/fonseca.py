@@ -12,23 +12,23 @@ class Fonseca_model:
     dX_t = (\alpha + bX_t + X_t^b^T)dt + \sqrt(X_t)dW_ta + a^T (dW_t)^T \sqrt(X_t).
     Where \alpha = \bar{\alpha} * a^Ta, for \bar{\alpha} > d-1.
     '''
-    def __init__(self, r, rho, alpha, b, a):
+    def __init__(self, r, rho, coef, b, a):
         '''
         * Params:
             r, real-number. The interest rate.
             rho, np.array, of shape (d,). The correlation vector.
-            alpha, np.array, of shape (d, d). 
             b, np.array, of shape (d, d).
             a, np.array, of shape (d, d). 
         '''
         d = len(rho)
-        assert alpha.shape==(d, d) and b.shape==(d, d) and a.shape==(d, d)
+        assert b.shape==(d, d) and a.shape==(d, d)
         assert rho.shape == (d,)
         self.r = r
         self.d = d
         self.rho = rho
         self.bar_rho = np.sqrt(1 - np.linalg.norm(rho))
-        self.alpha = alpha
+        self.alpha = coef * (a.T @ a)
+        self.bar_alpha = coef
         self.b = b
         self.a = a
         
@@ -39,13 +39,8 @@ class Fonseca_model:
         This function calculates the parameters of elgm, and initialise the
         elgm instance.
         '''
-        # Determine \bar{\alpha}
-        aTa = (self.a.T) @ self.a
-        tmp = self.alpha / aTa
-        bar_alpha = tmp[0, 0]
-        assert np.isclose(np.linalg.norm(tmp-bar_alpha), 0)
-        self.bar_alpha = bar_alpha
         # Calculate I_d^n, u, b_u, and delta.
+        aTa = self.a.T @ self.a
         c, k, p, n = utils.decompose_cholesky(aTa)
         self.n = n # n used in I_d^n.
         # Build uT.
@@ -58,7 +53,7 @@ class Fonseca_model:
         tmp_Idn = np.zeros(self.d)
         tmp_Idn[:n] = 1
         tmp_Idn = np.diag(tmp_Idn)
-        delta = bar_alpha * tmp_Idn
+        delta = self.bar_alpha * tmp_Idn
         bu = np.matmul(self.inv_u.T, np.matmul(self.b, self.u.T)) # bu = (u^T)^-1 b u^T
         self.elgm_gen = ELGM(rho=self.rho, alpha=delta, b=bu, n=n)
         
@@ -137,7 +132,7 @@ class Fonseca_model:
         if dBt is None:
             dBt = np.random.normal(size=(self.d)) * np.sqrt(dt)
         c = utils.cholesky(x)
-        Yt = (self.r - np.diag(x)/2)*dt + self.bar_rho * (c @ dBt)
+        Yt = y + (self.r - np.diag(x)/2)*dt + self.bar_rho * (c @ dBt)
         Xt = x
         return Xt, Yt
     
@@ -145,7 +140,7 @@ class Fonseca_model:
         r = np.matmul(self.inv_u.T, y)
         v = np.matmul(self.inv_u.T, np.matmul(x, self.inv_u))
         
-        Vt, Rt = self.elgm_gen.step(x=r, y=v, dt=dt, comb=comb)
+        Vt, Rt = self.elgm_gen.step(x=v, y=r, dt=dt, comb=comb)
         Yt = np.matmul(self.u.T, Rt)
         Xt = np.matmul(self.u.T, np.matmul(Vt, self.u))
         return Xt, Yt
