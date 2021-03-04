@@ -92,10 +92,11 @@ class Fonseca_model:
                 Xt, Yt = self.step(x=x, y=y, dt=dt, comb=comb)
                 lst_trace_Xt[i, j] = Xt
                 lst_trace_Yt[i, j] = Yt
-        if 'trace' in kwargs and not kwargs['trace']:
-            return lst_trace_Xt[:, -1], lst_trace_Yt[:, -1]
-        else:
+
+        if 'trace' in kwargs and kwargs['trace']:
             return lst_trace_Xt, lst_trace_Yt
+        else:
+            return lst_trace_Xt[:, -1], lst_trace_Yt[:, -1]
         
     def step(self, x, y, dt, dBt=None, comb='r'):
         '''
@@ -145,7 +146,7 @@ class Fonseca_model:
         r = np.matmul(self.inv_u.T, y)
         v = np.matmul(self.inv_u.T, np.matmul(x, self.inv_u))
         
-        Vt, Rt = self.elgm_gen.step(x=r, y=v, dt=dt, comb=comb)
+        Vt, Rt = self.elgm_gen.step(x=v, y=r, dt=dt, comb=comb)
         Yt = np.matmul(self.u.T, Rt)
         Xt = np.matmul(self.u.T, np.matmul(Vt, self.u))
         return Xt, Yt
