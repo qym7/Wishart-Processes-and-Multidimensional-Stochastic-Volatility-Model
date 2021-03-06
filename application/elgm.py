@@ -54,7 +54,12 @@ class ELGM:
         lst_trace_Yt = np.zeros((num, N+1, self.d))
         lst_trace_Xt[:, 0] = x
         lst_trace_Yt[:, 0] = y
-        for i in range(num):
+        
+        lst_it = range(num)
+        if 'tqdm' in kwargs:
+            tqdm = kwargs['tqdm']
+            lst_it = tqdm(lst_it)
+        for i in lst_it:
              for j in range(1, N+1):
                     Xt, Yt = self.step(x=lst_trace_Xt[i, j-1], y=lst_trace_Yt[i, j-1], dt=dt, dWt=dWt, comb=comb)
                     lst_trace_Xt[i, j] = Xt
@@ -204,7 +209,7 @@ class ELGM:
         Xt = self.x_gen.step(x=x, q=q, dt=epsilon_sqr * dt)  # Generate Xt.
         dXt = Xt - x  # Calculate dXt.
         Yt = y + rho_q / self.epsilon * dXt[q]  # Calculate Yt.
-        Yt[q] = y + rho_q / (2 * self.epsilon) * (dXt[q, q] - epsilon_sqr * (self.d - 1) * dt)
+        Yt[q] = y[q] + rho_q / (2 * self.epsilon) * (dXt[q, q] - epsilon_sqr * (self.d - 1) * dt)
         return Xt, Yt
 
     def step_L_bar_q(self, u, y, dt, dWt, q):
@@ -245,7 +250,7 @@ class ELGM:
                     dWt = np.array([dWt_0, dWt_1])
             for q in range(1, self.n)[::-1]:
                 Ut, Yt = self.step_L_bar_q(u=Ut, y=Yt, dt=dt / 2, dWt=dWt[0], q=q)
-            Ut, Yt = self.step_L_bar_q(u=Ut, y=Yt, dt=dt / 2, dWt=dWt[0] + dWt[1], q=0)
+            Ut, Yt = self.step_L_bar_q(u=Ut, y=Yt, dt=dt, dWt=dWt[0]+dWt[1], q=0)
             for q in range(1, self.n):
                 Ut, Yt = self.step_L_bar_q(u=Ut, y=Yt, dt=dt / 2, dWt=dWt[1], q=q)
             return Ut, Yt

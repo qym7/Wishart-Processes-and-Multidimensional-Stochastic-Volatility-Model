@@ -88,10 +88,10 @@ class Fonseca_model:
                 lst_trace_Xt[i, j] = Xt
                 lst_trace_Yt[i, j] = Yt
 
-        if 'trace' in kwargs and kwargs['trace']:
-            return lst_trace_Xt, lst_trace_Yt
-        else:
+        if 'trace' in kwargs and not kwargs['trace']:
             return lst_trace_Xt[:, -1], lst_trace_Yt[:, -1]
+        else:
+            return lst_trace_Xt, lst_trace_Yt
         
     def step(self, x, y, dt, dBt=None, comb='r'):
         '''
@@ -132,11 +132,11 @@ class Fonseca_model:
     def step_euler(self, x, y, dt, dBt=None):
         if dBt is None:
             dBt = np.random.normal(size=(self.d)) * np.sqrt(dt)
-        dWt = np.random.normal(size=(self.d)) * np.sqrt(dt)
+        dWt = np.random.normal(size=(self.d, self.d)) * np.sqrt(dt)
 
         sqrt_x = utils.cholesky(x)
-        Yt = y + (self.r - 1/2*np.diag(x))*dt + sqrt_x.dot(self.bar_rho).dot(dBt) + dWt.dot(self.rho)
-        Xt = (self.alpha + self.b.dot(x) + x.dot(self.b))*dt + sqrt_x.dot(dWt).dot(self.a) + self.a.T.dot(dWt.T).dot(sqrt_x)
+#         Yt = y + (self.r - 1/2*np.diag(x))*dt + sqrt_x.dot(self.bar_rho).dot(dBt) + dWt.dot(self.rho)
+#         Xt = (self.alpha + self.b.dot(x) + x.dot(self.b))*dt + sqrt_x.dot(dWt).dot(self.a) + self.a.T.dot(dWt.T).dot(sqrt_x)
 
         return Xt, Yt
 
