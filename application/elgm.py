@@ -173,7 +173,9 @@ class ELGM:
 
     def step_L_hat(self, x, y, dt, dWt, comb='r'):
         c = utils.cholesky(x)
-        Ut, Yt = self.step_L_bar(u=c, y=y, dt=dt, dWt=dWt, comb=comb)
+#         Ut, Yt = self.step_L_bar(u=c, y=y, dt=dt, dWt=dWt, comb=comb)
+        # Remark, here we shall use u = c^T, since c c^T = x but not c^T c = x.
+        Ut, Yt = self.step_L_bar(u=c.T, y=y, dt=dt, dWt=dWt, comb=comb)
         Xt = (Ut.T) @ Ut
 
         return Xt, Yt

@@ -86,7 +86,10 @@ class CIR:
             else: # If not , we pick N ~ Poisson(\lambda/2), 
                   # then Vt1 ~ Chi-2(2*N).
                 tmp_N = np.random.poisson(lam=lam_t/2)
-                Vt1 = np.random.chisquare(df=2*tmp_N)
+                if tmp_N == 0:
+                    Vt1 = 0
+                else:
+                    Vt1 = np.random.chisquare(df=2*tmp_N)
             Vt1 = Vt1 * factor  # Calculate V_t_{i+1}.
             V[:, i] = Vt1
 
