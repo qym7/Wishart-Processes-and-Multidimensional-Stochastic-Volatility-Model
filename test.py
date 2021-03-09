@@ -327,6 +327,7 @@ def test_elgm():
     Gamma = 0.05*np.eye(d)
     Lambda = 0.02*np.ones(d)
     alpha = (2.5 + (d+1) * 1) * np.eye(d)
+    coef = (2.5 + (d+1) * 1)
     # alpha = 2.5 * np.eye(d)
 
     lst_N = np.array([1,2,4,8,16])
@@ -365,15 +366,15 @@ def test_fonseca_convergence():
 
     Gamma = 0.05*np.eye(2)
     Lambda = 0.02*np.ones(2)
-    gen = Fonseca_model(r=r, rho=rho, alpha=beta*Q.T.dot(Q), b=M, a=Q)
+    gen = Fonseca_model(r=r, rho=rho, coef=beta, b=M, a=Q)
     methods = ["1", "2", "euler"]
     results = {"1":[], "2":[],"euler":[]}
-    lst_N = np.array([1, 2, 4, 8, 16])
+    lst_N = np.array([1, 2, 4, 8])
 
     # first asset
     for i, N in enumerate(lst_N):
         for j, comb in enumerate(methods):
-            xt, yt = gen.gen(x=x, y=y, T=t, N=N, num=num, comb=comb)
+            xt, yt = gen.gen(x=x, y=y, T=t, N=N, num=num, comb=comb, trace=False)
             char = gen.character(Gamma, Lambda, xt, yt)
             results[comb].append(np.real(char))
             print(f"calculated result for N = {N} and comb = {comb} ")
@@ -387,47 +388,58 @@ def test_fonseca_convergence():
 def test_fonseca_smile():
     import numpy as np
     from application import Fonseca_model
+    from wishart.utils import m2k, implied_volatility
     import matplotlib.pyplot as plt
     from matplotlib import cm
+    from tqdm import tqdm
 
     M = np.array([[-2.5, -1.5], [-1.5, -2.5]])
-    Q = np.array([[0.21, -0.14], [-0.14, 0.21]])
+    Q = np.array([[0.21, -0.14], [0.14, 0.21]])
     beta = 7.14283
     rho = np.array([-0.6, -0.6])
-    r = 0
-    x = np.array([[0.09,-0.036], [-0.036, 0.09]])
-    y = np.ones(2)
-    num = 10000
-    t=1
-    lst_m = np.linspace(0.8, 1.2, 10)
+    r = 0.05
+    S0 = 100
+    x = np.array([[0.09, -0.036], [-0.036, 0.09]])
+    y = np.log(np.ones(2)*S0)
+    num = 5000
+    t = 0.1
     N = 10
 
-    gen = Fonseca_model(r=r, rho=rho, alpha=beta*Q.T.dot(Q), b=M, a=Q)
-    methods = ["1", "2", "euler"]
-    results = {"1":np.zeros((len(lst_m), N)), "2":np.zeros((len(lst_m), N)),"euler":np.zeros((len(lst_m), N))}
+    lst_t = np.linspace(0, t, N + 1)[1:]
+    lst_m = np.linspace(0.9, 1.1, 10)
 
-    # first asset
-    for i, moneyness in enumerate(lst_m):
-        for j, comb in enumerate(methods):
-            xt, yt = gen.gen(x=x, y=np.log(moneyness)*y, T=t, N=N, num=num, comb=comb, trace=True)
-            for k in range(1, N+1):
-                x_cur = xt[:,k,0,0]
-                # y_cur = yt[:,k,0]
-                # results[comb][i, k-1] = np.corrcoef(np.stack((x_cur,y_cur), axis=0))[1,0]
-                results[comb][i, k - 1] = np.var(x_cur)
-            print(f"methode {comb}, moneyness {moneyness}")
+    fonseca = Fonseca_model(r=r, rho=rho, coef=beta, b=M, a=Q)
+    price0_array = np.zeros((len(lst_m), len(lst_t)))
+    price1_array = np.zeros((len(lst_m), len(lst_t)))
+    iv0_array = np.zeros((len(lst_m), len(lst_t)))
+    iv1_array = np.zeros((len(lst_m), len(lst_t)))
+
+    for i, m in tqdm(enumerate(lst_m)):
+        Yt = fonseca.gen(x=x, y=y, T=t, num=num, N=N, comb="r")[1]
+        Pt = np.exp(Yt) # (num, N+1, d)
+        k = m2k(s=S0, T=lst_t, m=np.log(m), r=r)
+        Pt0 = np.exp(-r * lst_t) * np.clip(-k+Pt[:, 1:, 0], 0, np.inf).mean(axis=0)
+        Pt1 = np.exp(-r * lst_t) * np.clip(-k+Pt[:, 1:, 1], 0, np.inf).mean(axis=0)
+        # Pt = np.exp(-r * t) * np.clip((k - Pt[:, 1:, :].max(axis=2)), 0, np.inf).mean(axis=0) # (N, )
+        price0_array[i, :] = Pt0
+        price1_array[i, :] = Pt1
+        # S0: (1, ), k: (N, ), T: (N, ), C: (N, )
+        iv0_array[i, :] = implied_volatility(s=S0, k=k, T=lst_t, C=Pt0, r=r, n_iterations=1000, epsilon=0.0001)
+        iv1_array[i, :] = implied_volatility(s=S0, k=k, T=lst_t, C=Pt1, r=r, n_iterations=1000, epsilon=0.0001)
+
+    print(iv0_array)
+    print(iv1_array)
 
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1,projection='3d')
-    X = np.linspace(t/N, 1+t/N, N)
+    X = lst_t
     Y = lst_m
     X, Y = np.meshgrid(X, Y)
-    Z = results["1"]
+    Z = iv1_array
     surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cm.jet, linewidth=0, antialiased=True)
     ax.set_xlabel("maturity", color='r')
     ax.set_ylabel("moneyness", color='g')
     ax.set_zlabel("volatility", color='b')
-    ax.set_zlim3d(-0.1, 0.1)
     fig.colorbar(surf, shrink=0.5, aspect=5)
     plt.legend()
     plt.show()

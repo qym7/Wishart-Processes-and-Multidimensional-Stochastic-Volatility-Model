@@ -66,7 +66,6 @@ class Fonseca_model:
         assert x.shape == (self.d, self.d)
         assert y.shape == (self.d,)
         dt = T/N
-        lst_t = np.arange(N+1) * dt
         # Initialise the elgm generator.
         self.elgm_gen.pre_gen(T=T, N=N, num=num, comb=comb, **kwargs)
         
@@ -135,8 +134,10 @@ class Fonseca_model:
         dWt = np.random.normal(size=(self.d, self.d)) * np.sqrt(dt)
 
         sqrt_x = utils.cholesky(x)
-#         Yt = y + (self.r - 1/2*np.diag(x))*dt + sqrt_x.dot(self.bar_rho).dot(dBt) + dWt.dot(self.rho)
-#         Xt = (self.alpha + self.b.dot(x) + x.dot(self.b))*dt + sqrt_x.dot(dWt).dot(self.a) + self.a.T.dot(dWt.T).dot(sqrt_x)
+        Yt = y + (self.r - 1/2*np.diag(x))*dt + np.matmul(sqrt_x*self.bar_rho, dBt) + dWt.dot(self.rho)
+        Xt = (self.alpha + np.matmul(self.b, x) + np.matmul(x, self.b))*dt + \
+             np.matmul(np.matmul(sqrt_x, dWt), self.a) + \
+             np.matmul(self.a.T, np.matmul(dWt.T, sqrt_x))
 
         return Xt, Yt
 

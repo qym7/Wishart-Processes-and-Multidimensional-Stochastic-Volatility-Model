@@ -109,8 +109,9 @@ class ELGM:
         for i in range(self.n,self.d):
             ind[i,i] = 0
         sqrt_x = utils.cholesky(x)
-        Xt = x + (self.alpha + self.b.dot(x) + x.dot(self.b.T))*dt + sqrt_x.dot(dWt).dot(ind) + ind.dot(dWt).dot(sqrt_x)
-        Yt = y + utils.cholesky(Xt).dot(dWt).dot(self.rho.reshape(-1,1)).T[0]
+        Xt = x + (self.alpha + np.matmul(self.b, x) + np.matmul(x, self.b.T))*dt + \
+             np.matmul(np.matmul(sqrt_x, dWt), ind) + np.matmul(np.matmul(ind, dWt.T), sqrt_x)
+        Yt = y + np.matmul(np.matmul(sqrt_x, dWt), self.rho.reshape(-1,1)).T[0]
 
         return Xt, Yt
 

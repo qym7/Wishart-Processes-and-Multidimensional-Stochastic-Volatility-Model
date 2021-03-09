@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.stats import norm
+
 import scipy.linalg
 import sys 
 sys.path.append('..')
@@ -139,8 +141,59 @@ def integrate(T, b, a, d, num_int=200):
 
     return np.sum(dqt, axis=0) * dt
 
+
 def brownian_squrare(T, dimension, n_steps=1):
     W = np.zeros((n_steps + 1, dimension, dimension))
     W[1:] = np.random.randn((n_steps, dimension, dimension))*np.sqrt(T/n_steps)
 
     return W.cumsum(axis=0)
+
+
+def d(s, k, v, sign=1):
+    return np.log(s/k)/np.sqrt(v) + sign*np.sqrt(v)/2
+
+
+def CBS(s, k, T, r, sigma):
+    """
+    Function to calculate the no-arbitrage price of a European call option on an underlying assert with price given by produce_path function.
+    """
+    return s*norm.cdf(d(s, k*np.exp(-r*T), sigma*sigma*T, 1)) - k*np.exp(-r*T)*norm.cdf(d(s, k*np.exp(-r*T), sigma*sigma*T, -1))
+
+
+def moneyness(s, k, T, r):
+    return np.log(s/(k*np.exp(-r*T)))
+
+
+def m2k(s, r, T, m):
+    return s * np.exp(r*T-m)
+
+
+def gaussian(x, mu, sigma):
+    return 1/(np.sqrt(2*np.pi)*sigma)*np.exp(-(x-mu)*(x-mu)/(2*sigma*sigma))
+
+
+def dCBS_dSigma(s, k, T, r, sigma):
+    """
+    Calculate d^2CBS/dsigma^2
+    """
+    return s*np.sqrt(T)*gaussian(d(s, k*np.exp(-r*T), sigma*sigma*T, 1), 0, 1)
+
+
+def implied_volatility(s, k, T, C, r, n_iterations=1000, epsilon=0.001):
+    """
+    Calculate the implied volatility by gradient descent
+    """
+    m = moneyness(s=s, k=k, T=T, r=r)
+    sigma = np.sqrt(2*np.abs(m)/T)
+    # sigma = np.sqrt(2 * np.exp(m) / T)
+    for i in range(n_iterations):
+        d_sigma = (C - CBS(s=s, k=k, T=T, r=r, sigma=sigma))/dCBS_dSigma(s=s, k=k, T=T, r=r, sigma=sigma)
+        sigma = sigma + d_sigma
+        if type(d_sigma) == np.ndarray:
+            if np.abs(C - CBS(s=s, k=k, T=T, r=r, sigma=sigma)).max()<epsilon:
+                break
+        elif np.abs(C - CBS(s=s, k=k, T=T, r=r, sigma=sigma))<epsilon:
+            break
+
+    return sigma
+    # return 2.5 * C / s / np.sqrt(T)
