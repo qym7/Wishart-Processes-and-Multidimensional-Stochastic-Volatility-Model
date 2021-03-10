@@ -398,15 +398,15 @@ def test_fonseca_smile():
     beta = 7.14283
     rho = np.array([-0.6, -0.6])
     r = 0.05
-    S0 = 100
+    S0 = 100000
     x = np.array([[0.09, -0.036], [-0.036, 0.09]])
     y = np.log(np.ones(2)*S0)
-    num = 5000
-    t = 0.1
+    num = 50000
+    t = 1
     N = 10
 
     lst_t = np.linspace(0, t, N + 1)[1:]
-    lst_m = np.linspace(0.9, 1.1, 10)
+    lst_m = np.linspace(0.8, 1.2, 20)
 
     fonseca = Fonseca_model(r=r, rho=rho, coef=beta, b=M, a=Q)
     price0_array = np.zeros((len(lst_m), len(lst_t)))
