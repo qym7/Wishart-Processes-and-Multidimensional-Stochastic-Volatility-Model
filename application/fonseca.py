@@ -134,10 +134,13 @@ class Fonseca_model:
             dBt = np.random.normal(size=(self.d)) * np.sqrt(dt)
         dWt = np.random.normal(size=(self.d, self.d)) * np.sqrt(dt)
 
+        dZt = self.bar_rho * dBt + np.matmul(dWt, self.rho)
         sqrt_x = utils.cholesky(x)
+        Yt = y + (self.r - 1/2 * np.diag(x))*dt + np.matmul(sqrt_x, dZt)
+        tmp = dWt @ self.a
+        Xt = x + (self.alpha + self.b @ x + x @ (self.b.T)) * dt + sqrt_x @ tmp + (tmp.T) @ sqrt_x
 #         Yt = y + (self.r - 1/2*np.diag(x))*dt + sqrt_x.dot(self.bar_rho).dot(dBt) + dWt.dot(self.rho)
 #         Xt = (self.alpha + self.b.dot(x) + x.dot(self.b))*dt + sqrt_x.dot(dWt).dot(self.a) + self.a.T.dot(dWt.T).dot(sqrt_x)
-
         return Xt, Yt
 
     def step_L_1(self, x, y, dt, dBt=None):
