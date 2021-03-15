@@ -398,7 +398,7 @@ def test_fonseca_smile():
     beta = 7.14283
     rho = np.array([-0.6, -0.6])
     r = 0.05
-    S0 = 100000
+    S0 = 100
     x = np.array([[0.09, -0.036], [-0.036, 0.09]])
     y = np.log(np.ones(2)*S0)
     num = 50000
@@ -407,6 +407,7 @@ def test_fonseca_smile():
 
     lst_t = np.linspace(0, t, N + 1)[1:]
     lst_m = np.linspace(0.8, 1.2, 20)
+    lst_k = np.linspace(90, 130, 20)
 
     fonseca = Fonseca_model(r=r, rho=rho, coef=beta, b=M, a=Q)
     price0_array = np.zeros((len(lst_m), len(lst_t)))
@@ -417,15 +418,16 @@ def test_fonseca_smile():
     for i, m in tqdm(enumerate(lst_m)):
         Yt = fonseca.gen(x=x, y=y, T=t, num=num, N=N, comb="r")[1]
         Pt = np.exp(Yt) # (num, N+1, d)
-        k = m2k(s=S0, T=lst_t, m=np.log(m), r=r)
+        # k = m2k(s=S0, T=lst_t, m=np.log(m), r=r)
+        k = lst_k[i]
         Pt0 = np.exp(-r * lst_t) * np.clip(-k+Pt[:, 1:, 0], 0, np.inf).mean(axis=0)
         Pt1 = np.exp(-r * lst_t) * np.clip(-k+Pt[:, 1:, 1], 0, np.inf).mean(axis=0)
         # Pt = np.exp(-r * t) * np.clip((k - Pt[:, 1:, :].max(axis=2)), 0, np.inf).mean(axis=0) # (N, )
         price0_array[i, :] = Pt0
         price1_array[i, :] = Pt1
         # S0: (1, ), k: (N, ), T: (N, ), C: (N, )
-        iv0_array[i, :] = implied_volatility(s=S0, k=k, T=lst_t, C=Pt0, r=r, n_iterations=1000, epsilon=0.0001)
-        iv1_array[i, :] = implied_volatility(s=S0, k=k, T=lst_t, C=Pt1, r=r, n_iterations=1000, epsilon=0.0001)
+        iv0_array[i, :] = implied_volatility(s=S0, k=k, T=lst_t, C=Pt0, r=r, n_iterations=10000, epsilon=0.0001)
+        iv1_array[i, :] = implied_volatility(s=S0, k=k, T=lst_t, C=Pt1, r=r, n_iterations=10000, epsilon=0.0001)
 
     print(iv0_array)
     print(iv1_array)
@@ -433,7 +435,8 @@ def test_fonseca_smile():
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1,projection='3d')
     X = lst_t
-    Y = lst_m
+    # Y = lst_m
+    Y = lst_k
     X, Y = np.meshgrid(X, Y)
     Z = iv1_array
     surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cm.jet, linewidth=0, antialiased=True)
@@ -443,3 +446,67 @@ def test_fonseca_smile():
     fig.colorbar(surf, shrink=0.5, aspect=5)
     plt.legend()
     plt.show()
+
+def comparison_fonseca_wishart():
+    from wishart import Wishart_e, Wishart
+    import time
+
+    import numpy as np
+    from application import Fonseca_model, GS_model
+
+    M = np.array([[-2.5, -1.5], [-1.5, -2.5]])
+    Q = np.array([[0.21, -0.14], [0.14, 0.21]])
+    beta = 7.14283
+    rho = np.array([0, 0])
+    r = 0.05
+    S0 = 100
+    x = np.array([[0.09, -0.036], [-0.036, 0.09]])
+    y = np.log(np.ones(2)*S0)
+    num = 10000
+    t = 1
+    N = 10
+
+    lst_t = np.linspace(0, t, N + 1)[1:]
+    lst_m = np.linspace(0.8, 1.2, 20)
+
+    # Compare fonseca/wishart
+    fonseca = Fonseca_model(r=r, rho=rho, coef=beta, b=M, a=Q)
+    time_start = time.time()
+    Y_fonseca, X_fonseca = fonseca.gen(x=x, y=y, T=t, num=num, N=N, comb="r", trace=True)
+    time_end = time.time()
+    print('time cost', time_end - time_start, 's')
+
+    sufana = GS_model(S0=y, r=r, X0=x, alpha=beta, a=Q, b=M)
+    time_start = time.time()
+    Y_sufana, X_sufana = sufana(num=num, N=N, T=t, ret_vol=True)
+    time_end = time.time()
+    print('time cost', time_end - time_start, 's')
+
+    wishart = Wishart(x, alpha=beta, a=Q, b=M)
+    time_start = time.time()
+    X_wishart = wishart(x=x, T=t, num=num, N=N, comb="r", trace=True)
+    time_end = time.time()
+    print('time cost', time_end - time_start, 's')
+
+    # Compare wishart-e and wishart_e
+    M = np.array([[0., 0.], [0., 0.]])
+    Q = np.array([[0., 0.], [0., 1.]])
+
+    wishart_ee = Wishart(x, alpha=beta, a=Q, b=M)
+    time_start = time.time()
+    X_wishart_ee = wishart_ee(x=x, T=t, num=num, N=N, comb="r", trace=True)
+    time_end = time.time()
+    print('time cost', time_end - time_start, 's')
+
+    wishart_e = Wishart_e(alpha=beta, d=2)
+    dt = t/N
+    time_start = time.time()
+    X_wishart_e = np.zeros((num, N+1, 2, 2))
+    X_wishart_e[:, 0, :, :] = x
+    for j in range(num):
+        for i in range(1, N+1):
+            X_wishart_e[j, i, :, :] = wishart_e.step(x=X_wishart_e[j, i-1, :, :],
+                                                     dt=dt,
+                                                     q=1)
+    time_end = time.time()
+    print('time cost', time_end - time_start, 's')
