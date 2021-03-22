@@ -1,4 +1,4 @@
-# Wishart Processes and MultidimensionalStochastic Volatility Model
+# Wishart Processes and Multidimensional Stochastic Volatility Model
 
 This repository provides with the simulation of CIR process and Wishart process, who are frequently used to describe a stochasticvolatility. 
 It provides also two derived pricing model: Sufana-Gourieroux modelm, the extension on multi-dimension of the Heston model) and Fonseca model, who cnsiders assets return dynamics linearlycorrelated with the covariance matrix and performs better by conserving the smile and skew effects of implied correlation.
